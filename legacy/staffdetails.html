@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Member Details</title>
+    <link rel="icon" href="./images/t_icon.png" type="image/png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom CSS for responsiveness */
+      @media (max-width: 100px) {
+        #member-image {
+          height: 480px;
+        }
+
+        #member-name {
+          font-size: 1.5rem;
+        }
+
+        #member-role {
+          font-size: 1rem;
+        }
+
+        .flex {
+          flex-direction: column;
+        }
+
+        .text-center {
+          text-align: center;
+        }
+
+        .px-6 {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+
+        ul {
+          display: flex;
+          flex-direction: row; /* Ensure horizontal layout */
+          justify-content: center; /* Center the icons */
+          list-style-type: none; /* Remove bullet points */
+          padding: 0;
+        }
+
+        ul li {
+          margin: 0 10px; /* Add horizontal spacing */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="details" class="py-12">
+      <div class="container mx-auto p-6 bg-gray-100 rounded-md">
+        <div class="flex flex-col items-center md:flex-row md:items-start">
+          <!-- Image Section -->
+          <div class="w-50 w-80 flex justify-center mb-6 md:mb-0">
+            <img
+              id="member-image"
+              src=""
+              alt="Team Member"
+              class="w-full object-cover rounded-md shadow-md"
+            />
+          </div>
+
+          <!-- Details Section -->
+          <div class="md:w-2/3 w-full px-6 text-center md:text-left">
+            <h3
+              id="member-name"
+              class="text-2xl font-semibold text-gray-800 md:text-3xl"
+            ></h3>
+            <p id="member-role" class="text-lg text-gray-600 mt-2"></p>
+            <p id="member-description" class="mt-4 text-gray-700"></p>
+
+            <!-- Social Media Icons -->
+            <ul
+              class="mt-6 flex justify-center space-x-6 text-xl text-gray-600"
+            ></ul>
+          </div>
+        </div>
+
+        <!-- Back to team button -->
+        <div class="mt-6 text-center">
+          <a
+            href="staff.html"
+            class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+          >
+            Back to Staff
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <script defer src="./staffdetails.js"></script>
+    <script defer src="./donate-widget.js"></script>
+  </body>
+</html>

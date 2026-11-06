@@ -1,0 +1,1882 @@
+<?php
+session_start();
+if (empty($_SESSION['is_admin'])) {
+    header('Location: /Controll_admin?redirect=uploadprofile.php');
+    exit;
+}
+
+// Database connection
+$conn = new mysqli('localhost', 'hillsrug_hillsrug', 'M00dle??', 'hillsrug_1000hills_rugby_db');
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$conn->query("CREATE TABLE IF NOT EXISTS players (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    img VARCHAR(255),
+    date_of_birth DATE NULL,
+    age INT(3),
+    role VARCHAR(50),
+    position_category VARCHAR(50),
+    special_role VARCHAR(50),
+    team VARCHAR(20) NOT NULL DEFAULT 'men',
+    weight VARCHAR(10),
+    height VARCHAR(10),
+    games INT(11),
+    points INT(11),
+    tries INT(11),
+    placeOfBirth VARCHAR(100),
+    nationality VARCHAR(50),
+    honours TEXT,
+    joined VARCHAR(20),
+    previousClubs TEXT,
+    sponsor VARCHAR(100),
+    sponsorDesc TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS player_update_links (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    player_id INT(11) NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    revoked TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_token (token),
+    INDEX idx_player_id (player_id)
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS player_pending_updates (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    player_id INT(11) NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    data LONGTEXT NOT NULL,
+    img VARCHAR(255) DEFAULT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_status (status),
+    INDEX idx_player_id (player_id)
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS player_pending_new_players (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    team VARCHAR(20) NOT NULL DEFAULT 'men',
+    data LONGTEXT NOT NULL,
+    img VARCHAR(255) DEFAULT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_status (status),
+    INDEX idx_team (team)
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS player_new_application_links (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(64) NOT NULL,
+    team VARCHAR(20) NOT NULL DEFAULT 'men',
+    revoked TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_token (token),
+    INDEX idx_team (team)
+)");
+
+$conn->query("CREATE TABLE IF NOT EXISTS player_update_settings (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    team VARCHAR(20) NOT NULL,
+    allowed_fields LONGTEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_team (team)
+)");
+
+$columnCheck = $conn->query("SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'players' AND COLUMN_NAME = 'date_of_birth'");
+if ($columnCheck && ($row = $columnCheck->fetch_assoc()) && intval($row['cnt']) === 0) {
+    $conn->query("ALTER TABLE players ADD COLUMN date_of_birth DATE NULL AFTER img");
+}
+
+// Initialize variables
+$message = '';
+$messageClass = '';
+$editMode = false;
+$currentPlayer = null;
+$players = [];
+
+function randomHexToken($bytes = 32) {
+    try {
+        return bin2hex(random_bytes($bytes));
+    } catch (Exception $e) {
+        return bin2hex(openssl_random_pseudo_bytes($bytes));
+    }
+}
+
+function calculateAgeFromDob($dateOfBirth) {
+    if (empty($dateOfBirth)) {
+        return null;
+    }
+    try {
+        $dob = new DateTime($dateOfBirth);
+        $today = new DateTime('today');
+        if ($dob > $today) {
+            return null;
+        }
+        return (int)$dob->diff($today)->y;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function displayPlayerAge($player) {
+    $dob = $player['date_of_birth'] ?? '';
+    if (!empty($dob)) {
+        $age = calculateAgeFromDob($dob);
+        if ($age !== null) {
+            return $age;
+        }
+    }
+
+    $ageOrYear = intval($player['age'] ?? 0);
+    $currentYear = intval(date('Y'));
+    if ($ageOrYear >= 1900 && $ageOrYear <= $currentYear) {
+        return max(0, $currentYear - $ageOrYear);
+    }
+    return max(0, $ageOrYear);
+}
+
+function saveOptimizedUploadedImage($tmpPath, $destPath, $maxWidth, $maxHeight, $jpegQuality = 75, $pngCompression = 6) {
+    if (!is_string($tmpPath) || $tmpPath === '' || !is_file($tmpPath) || !is_uploaded_file($tmpPath)) {
+        return false;
+    }
+
+    if (!function_exists('getimagesize') || !function_exists('imagecreatetruecolor')) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    $info = @getimagesize($tmpPath);
+    if (!$info || empty($info[0]) || empty($info[1]) || empty($info['mime'])) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    $srcW = (int) $info[0];
+    $srcH = (int) $info[1];
+    $mime = strtolower((string) $info['mime']);
+
+    $isJpeg = ($mime === 'image/jpeg' || $mime === 'image/jpg');
+    $isPng = ($mime === 'image/png');
+    $isWebp = ($mime === 'image/webp');
+    $isGif = ($mime === 'image/gif');
+
+    if ($isWebp || $isGif) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    if ($isJpeg && !function_exists('imagecreatefromjpeg')) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+    if ($isPng && !function_exists('imagecreatefrompng')) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+    if (!$isJpeg && !$isPng) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    $srcImg = $isJpeg ? @imagecreatefromjpeg($tmpPath) : @imagecreatefrompng($tmpPath);
+    if (!$srcImg) {
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    if ($isJpeg && function_exists('exif_read_data')) {
+        $exif = @exif_read_data($tmpPath);
+        $orientation = isset($exif['Orientation']) ? (int) $exif['Orientation'] : 1;
+        if ($orientation === 3) {
+            $srcImg = imagerotate($srcImg, 180, 0);
+        } elseif ($orientation === 6) {
+            $srcImg = imagerotate($srcImg, -90, 0);
+            $t = $srcW;
+            $srcW = $srcH;
+            $srcH = $t;
+        } elseif ($orientation === 8) {
+            $srcImg = imagerotate($srcImg, 90, 0);
+            $t = $srcW;
+            $srcW = $srcH;
+            $srcH = $t;
+        }
+    }
+
+    $scale = 1.0;
+    if ($maxWidth > 0 && $maxHeight > 0) {
+        $scale = min($maxWidth / $srcW, $maxHeight / $srcH, 1.0);
+    } elseif ($maxWidth > 0) {
+        $scale = min($maxWidth / $srcW, 1.0);
+    } elseif ($maxHeight > 0) {
+        $scale = min($maxHeight / $srcH, 1.0);
+    }
+
+    $dstW = max(1, (int) floor($srcW * $scale));
+    $dstH = max(1, (int) floor($srcH * $scale));
+
+    $dstImg = imagecreatetruecolor($dstW, $dstH);
+    if (!$dstImg) {
+        imagedestroy($srcImg);
+        return move_uploaded_file($tmpPath, $destPath);
+    }
+
+    if ($isPng) {
+        imagealphablending($dstImg, false);
+        imagesavealpha($dstImg, true);
+        $transparent = imagecolorallocatealpha($dstImg, 0, 0, 0, 127);
+        imagefilledrectangle($dstImg, 0, 0, $dstW, $dstH, $transparent);
+    }
+
+    imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
+
+    $ok = false;
+    if ($isJpeg) {
+        $ok = imagejpeg($dstImg, $destPath, $jpegQuality);
+    } else {
+        $ok = imagepng($dstImg, $destPath, $pngCompression);
+    }
+
+    imagedestroy($dstImg);
+    imagedestroy($srcImg);
+
+    if ($ok) {
+        @unlink($tmpPath);
+    }
+    return $ok;
+}
+
+// Handle delete action
+if (isset($_GET['delete'])) {
+    $id = intval($_GET['delete']);
+    // First get the image path to delete the file
+    $result = $conn->query("SELECT img FROM players WHERE id = $id");
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        if (!empty($row['img']) && file_exists($row['img'])) {
+            unlink($row['img']); // Delete the image file
+        }
+    }
+    
+    $sql = "DELETE FROM players WHERE id = $id";
+    if ($conn->query($sql)) {
+        $message = 'Player deleted successfully!';
+        $messageClass = 'alert-success';
+        // Redirect to clear the delete parameter from URL
+        header("Location: uploadprofile.php");
+        exit();
+    } else {
+        $message = 'Error deleting player: ' . $conn->error;
+        $messageClass = 'alert-error';
+    }
+}
+
+// Save admin settings for which fields players can submit (per team)
+if (isset($_POST['save_update_settings'])) {
+    $teamSetting = $conn->real_escape_string(trim($_POST['team_setting'] ?? 'all'));
+    $allowed = $_POST['allowed_fields'] ?? [];
+    if (!is_array($allowed)) {
+        $allowed = [];
+    }
+    $allowed = array_values(array_unique(array_filter(array_map('strval', $allowed))));
+
+    $allowedJson = json_encode($allowed, JSON_UNESCAPED_UNICODE);
+    if ($allowedJson === false) {
+        $message = 'Failed to save settings.';
+        $messageClass = 'alert-error';
+    } else {
+        $sql = "INSERT INTO player_update_settings (team, allowed_fields) VALUES ('$teamSetting', '" . $conn->real_escape_string($allowedJson) . "')
+                ON DUPLICATE KEY UPDATE allowed_fields = VALUES(allowed_fields)";
+        if ($conn->query($sql)) {
+            $message = 'Update settings saved.';
+            $messageClass = 'alert-success';
+            header('Location: uploadprofile.php');
+            exit();
+        }
+
+        $message = 'Failed to save settings.';
+        $messageClass = 'alert-error';
+    }
+}
+
+// Admin review pending updates (approve/reject)
+if (isset($_POST['review_pending_update'])) {
+    $pendingId = intval($_POST['pending_id'] ?? 0);
+    $action = trim($_POST['review_action'] ?? '');
+
+    if ($pendingId <= 0 || ($action !== 'approve' && $action !== 'reject')) {
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $pendingResult = $conn->query("SELECT * FROM player_pending_updates WHERE id = $pendingId AND status = 'pending' LIMIT 1");
+    if (!$pendingResult || $pendingResult->num_rows === 0) {
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $pending = $pendingResult->fetch_assoc();
+    $playerId = intval($pending['player_id']);
+
+    if ($action === 'reject') {
+        $conn->query("UPDATE player_pending_updates SET status = 'rejected', reviewed_at = NOW() WHERE id = $pendingId");
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $data = json_decode($pending['data'] ?? '', true);
+    if (!is_array($data)) {
+        $conn->query("UPDATE player_pending_updates SET status = 'rejected', reviewed_at = NOW() WHERE id = $pendingId");
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $allowedCols = [
+        'name','team','role','position_category','special_role','date_of_birth','age','height','weight','games','points','tries',
+        'placeOfBirth','nationality','honours','joined','previousClubs','sponsor','sponsorDesc'
+    ];
+
+    $sets = [];
+    foreach ($allowedCols as $col) {
+        if (array_key_exists($col, $data)) {
+            $val = $data[$col];
+            if ($col === 'games' || $col === 'points' || $col === 'tries' || $col === 'age') {
+                $sets[] = "$col = " . intval($val);
+            } elseif ($col === 'date_of_birth') {
+                $v = trim((string)$val);
+                if ($v === '') {
+                    $sets[] = "$col = NULL";
+                } else {
+                    $sets[] = "$col = '" . $conn->real_escape_string($v) . "'";
+                }
+            } else {
+                $sets[] = "$col = '" . $conn->real_escape_string((string)$val) . "'";
+            }
+        }
+    }
+
+    if (!empty($pending['img'])) {
+        $oldImgRes = $conn->query("SELECT img FROM players WHERE id = $playerId LIMIT 1");
+        if ($oldImgRes && $oldImgRes->num_rows > 0) {
+            $oldRow = $oldImgRes->fetch_assoc();
+            $oldImg = $oldRow['img'] ?? '';
+            if (!empty($oldImg) && $oldImg !== $pending['img'] && file_exists($oldImg)) {
+                @unlink($oldImg);
+            }
+        }
+        $sets[] = "img = '" . $conn->real_escape_string($pending['img']) . "'";
+    }
+
+    if (!empty($sets)) {
+        $sql = "UPDATE players SET " . implode(', ', $sets) . " WHERE id = $playerId";
+        $conn->query($sql);
+    }
+
+    $conn->query("UPDATE player_pending_updates SET status = 'approved', reviewed_at = NOW() WHERE id = $pendingId");
+    header('Location: uploadprofile.php');
+    exit();
+}
+
+// Admin review pending NEW player applications (approve/reject)
+if (isset($_POST['review_pending_new_player'])) {
+    $pendingId = intval($_POST['pending_id'] ?? 0);
+    $action = trim($_POST['review_action'] ?? '');
+
+    if ($pendingId <= 0 || ($action !== 'approve' && $action !== 'reject')) {
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $pendingResult = $conn->query("SELECT * FROM player_pending_new_players WHERE id = $pendingId AND status = 'pending' LIMIT 1");
+    if (!$pendingResult || $pendingResult->num_rows === 0) {
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $pending = $pendingResult->fetch_assoc();
+
+    if ($action === 'reject') {
+        $conn->query("UPDATE player_pending_new_players SET status = 'rejected', reviewed_at = NOW() WHERE id = $pendingId");
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $data = json_decode($pending['data'] ?? '', true);
+    if (!is_array($data)) {
+        $conn->query("UPDATE player_pending_new_players SET status = 'rejected', reviewed_at = NOW() WHERE id = $pendingId");
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    $allowedCols = [
+        'name','team','role','position_category','special_role','date_of_birth','age','height','weight','games','points','tries',
+        'placeOfBirth','nationality','honours','joined','previousClubs','sponsor','sponsorDesc'
+    ];
+
+    $name = trim((string)($data['name'] ?? ($pending['name'] ?? '')));
+    $team = trim((string)($data['team'] ?? ($pending['team'] ?? 'men')));
+    if ($name === '' || $team === '') {
+        $conn->query("UPDATE player_pending_new_players SET status = 'rejected', reviewed_at = NOW() WHERE id = $pendingId");
+        header('Location: uploadprofile.php');
+        exit();
+    }
+
+    // Move pending image (if any) into main uploads/players/
+    $finalImgPath = '';
+    if (!empty($pending['img'])) {
+        $pendingImg = $pending['img'];
+        $uploadDir = 'uploads/players/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $ext = pathinfo($pendingImg, PATHINFO_EXTENSION);
+        $ext = $ext ? strtolower($ext) : 'jpg';
+        $newName = uniqid('player_') . '.' . $ext;
+        $target = rtrim($uploadDir, '/\\') . '/' . $newName;
+
+        if (@rename($pendingImg, $target)) {
+            $finalImgPath = $target;
+        } else {
+            // If move fails, keep original path so admin doesn't lose it
+            $finalImgPath = $pendingImg;
+        }
+    }
+
+    $fields = [];
+    $values = [];
+
+    foreach ($allowedCols as $col) {
+        if (!array_key_exists($col, $data)) {
+            continue;
+        }
+        $val = $data[$col];
+
+        $fields[] = $col;
+        if ($col === 'games' || $col === 'points' || $col === 'tries' || $col === 'age') {
+            $values[] = (string)intval($val);
+        } elseif ($col === 'date_of_birth') {
+            $v = trim((string)$val);
+            $values[] = ($v === '') ? 'NULL' : "'" . $conn->real_escape_string($v) . "'";
+        } else {
+            $values[] = "'" . $conn->real_escape_string((string)$val) . "'";
+        }
+    }
+
+    if ($finalImgPath !== '') {
+        $fields[] = 'img';
+        $values[] = "'" . $conn->real_escape_string($finalImgPath) . "'";
+    }
+
+    // Ensure name/team exist even if not included above
+    if (!in_array('name', $fields, true)) {
+        $fields[] = 'name';
+        $values[] = "'" . $conn->real_escape_string($name) . "'";
+    }
+    if (!in_array('team', $fields, true)) {
+        $fields[] = 'team';
+        $values[] = "'" . $conn->real_escape_string($team) . "'";
+    }
+
+    $sql = "INSERT INTO players (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $values) . ")";
+    $conn->query($sql);
+
+    $conn->query("UPDATE player_pending_new_players SET status = 'approved', reviewed_at = NOW() WHERE id = $pendingId");
+    header('Location: uploadprofile.php');
+    exit();
+}
+
+// Generate share link (public)
+if (isset($_POST['generate_update_link'])) {
+    $playerId = intval($_POST['id'] ?? 0);
+    if ($playerId > 0) {
+        $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+        $publicLink = rtrim($baseUrl, '/') . '/player-update?player_id=' . $playerId;
+        $message = 'Share this link with the player: ' . $publicLink;
+        $messageClass = 'alert-success';
+    }
+}
+
+// Generate secret link for NEW player applications
+if (isset($_POST['generate_new_player_link'])) {
+    $teamKey = trim($_POST['new_player_team'] ?? 'men');
+    $allowedTeams = ['men','women','academy_u18_boys','academy_u18_girls','academy_u16_boys','academy_u16_girls'];
+    if (!in_array($teamKey, $allowedTeams, true)) {
+        $teamKey = 'men';
+    }
+
+    $token = randomHexToken(12); // 24 hex chars, hard to guess
+    $stmt = $conn->prepare('INSERT INTO player_new_application_links (token, team, revoked) VALUES (?, ?, 0)');
+    if ($stmt) {
+        $stmt->bind_param('ss', $token, $teamKey);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+    $publicLink = rtrim($baseUrl, '/') . '/player-update?new_token=' . urlencode($token);
+    $message = 'Share this NEW player link: ' . $publicLink;
+    $messageClass = 'alert-success';
+}
+
+// Handle remove image action
+if (isset($_POST['remove_image'])) {
+    $id = intval($_POST['id']);
+    
+    // Get the current image path
+    $result = $conn->query("SELECT img FROM players WHERE id = $id");
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        if (!empty($row['img'])) {
+            // Delete the image file
+            if (file_exists($row['img'])) {
+                unlink($row['img']);
+            }
+            
+            // Update the database to remove the image reference
+            $conn->query("UPDATE players SET img = '' WHERE id = $id");
+            
+            $message = 'Image removed successfully!';
+            $messageClass = 'alert-success';
+            
+            // Refresh the page to show changes
+            header("Location: uploadprofile.php?edit=$id");
+            exit();
+        }
+    }
+}
+
+// Handle form submission for adding/editing
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['remove_image']) && !isset($_POST['review_pending_update']) && !isset($_POST['review_pending_new_player']) && !isset($_POST['generate_update_link']) && !isset($_POST['generate_new_player_link']) && !isset($_POST['save_update_settings'])) {
+    // Sanitize and validate input
+    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $name = $conn->real_escape_string(trim($_POST['name'] ?? ''));
+    $dateOfBirthRaw = trim($_POST['date_of_birth'] ?? '');
+    $date_of_birth = $conn->real_escape_string($dateOfBirthRaw);
+    $computedAge = calculateAgeFromDob($dateOfBirthRaw);
+    $age = ($computedAge !== null) ? $computedAge : (isset($_POST['age']) ? intval($_POST['age']) : 0);
+    $role = $conn->real_escape_string(trim($_POST['role'] ?? ''));
+    $position_category = $conn->real_escape_string(trim($_POST['player_category'] ?? ''));
+    $special_role = $conn->real_escape_string(trim($_POST['category'] ?? ''));
+    $team = $conn->real_escape_string(trim($_POST['team'] ?? 'men'));
+    $weight = $conn->real_escape_string(trim($_POST['weight'] ?? ''));
+    $height = $conn->real_escape_string(trim($_POST['height'] ?? ''));
+    $games = isset($_POST['games']) ? intval($_POST['games']) : 0;
+    $points = isset($_POST['points']) ? intval($_POST['points']) : 0;
+    $tries = isset($_POST['tries']) ? intval($_POST['tries']) : 0;
+    $placeOfBirth = $conn->real_escape_string(trim($_POST['placeOfBirth'] ?? ''));
+    $nationality = $conn->real_escape_string(trim($_POST['nationality'] ?? ''));
+    $honours = $conn->real_escape_string(trim($_POST['honours'] ?? ''));
+    $joined = $conn->real_escape_string(trim($_POST['joined'] ?? ''));
+    $previousClubs = $conn->real_escape_string(trim($_POST['previousClubs'] ?? ''));
+    $sponsor = $conn->real_escape_string(trim($_POST['sponsor'] ?? ''));
+    $sponsorDesc = $conn->real_escape_string(trim($_POST['sponsorDesc'] ?? ''));
+
+    // Handle image upload
+    $imgPath = '';
+    if (isset($_POST['existing_image'])) {
+        $imgPath = $conn->real_escape_string(trim($_POST['existing_image']));
+    }
+
+    if (isset($_FILES['player_image']) && $_FILES['player_image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/players/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        // Generate unique filename
+        $fileExt = pathinfo($_FILES['player_image']['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('player_') . '.' . $fileExt;
+        $targetPath = $uploadDir . $filename;
+        
+        // Validate image file
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $fileType = mime_content_type($_FILES['player_image']['tmp_name']);
+        
+        if (in_array($fileType, $allowedTypes)) {
+            $tmpFile = $_FILES['player_image']['tmp_name'];
+            $saved = saveOptimizedUploadedImage($tmpFile, $targetPath, 1200, 1200, 75, 6);
+            if ($saved) {
+                // Delete old image if it exists
+                if (!empty($_POST['existing_image']) && file_exists($_POST['existing_image'])) {
+                    unlink($_POST['existing_image']);
+                }
+                $imgPath = $targetPath;
+            } else {
+                $message = 'Error uploading image file.';
+                $messageClass = 'alert-error';
+            }
+        } else {
+            $message = 'Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.';
+            $messageClass = 'alert-error';
+        }
+    }
+    
+    if (!empty($dateOfBirthRaw) && $computedAge === null) {
+        $message = 'Invalid date of birth. Please select a valid past date.';
+        $messageClass = 'alert-error';
+    }
+
+    // Only proceed with database operation if there were no errors
+    if (empty($message)) {
+        if ($id > 0) {
+            // Update existing player
+            $sql = "UPDATE players SET 
+                    name = '$name', 
+                    img = '$imgPath', 
+                    date_of_birth = " . (!empty($dateOfBirthRaw) ? "'$date_of_birth'" : "NULL") . ",
+                    age = $age, 
+                    role = '$role', 
+                    position_category = '$position_category', 
+                    special_role = '$special_role', 
+                    team = '$team',
+                    weight = '$weight', 
+                    height = '$height', 
+                    games = $games, 
+                    points = $points, 
+                    tries = $tries,
+                    placeOfBirth = '$placeOfBirth', 
+                    nationality = '$nationality', 
+                    honours = '$honours', 
+                    joined = '$joined', 
+                    previousClubs = '$previousClubs', 
+                    sponsor = '$sponsor', 
+                    sponsorDesc = '$sponsorDesc'
+                    WHERE id = $id";
+        } else {
+            // Insert new player
+            $sql = "INSERT INTO players (name, img, date_of_birth, age, role, position_category, special_role, team, weight, height, games, points, tries, 
+                    placeOfBirth, nationality, honours, joined, previousClubs, sponsor, sponsorDesc)
+                    VALUES ('$name', '$imgPath', " . (!empty($dateOfBirthRaw) ? "'$date_of_birth'" : "NULL") . ", $age, '$role', '$position_category', '$special_role', '$team', '$weight', '$height', $games, $points, $tries,
+                    '$placeOfBirth', '$nationality', '$honours', '$joined', '$previousClubs', '$sponsor', '$sponsorDesc')";
+        }
+        
+        if ($conn->query($sql)) {
+            $message = 'Player profile ' . ($id > 0 ? 'updated' : 'added') . ' successfully!';
+            $messageClass = 'alert-success';
+            // Redirect to clear the form and prevent duplicate submissions
+            header("Location: uploadprofile.php");
+            exit();
+        } else {
+            $message = 'Error: ' . $conn->error;
+            $messageClass = 'alert-error';
+        }
+    }
+}
+
+// Handle edit mode
+if (isset($_GET['edit'])) {
+    $editMode = true;
+    $id = intval($_GET['edit']);
+    $result = $conn->query("SELECT * FROM players WHERE id = $id");
+    if ($result->num_rows > 0) {
+        $currentPlayer = $result->fetch_assoc();
+    } else {
+        // Player not found, redirect
+        header("Location: uploadprofile.php");
+        exit();
+    }
+}
+
+// Get all players for listing
+$result = $conn->query("SELECT * FROM players ORDER BY 
+    CASE 
+        WHEN team = 'men' THEN 1
+        WHEN team = 'women' THEN 2
+        WHEN team = 'academy_u18_boys' THEN 3
+        WHEN team = 'academy_u18_girls' THEN 4
+        WHEN team = 'academy_u16_boys' THEN 5
+        WHEN team = 'academy_u16_girls' THEN 6
+        ELSE 7
+    END, name");
+if ($result->num_rows > 0) {
+    while($row = $result->fetch_assoc()) {
+        $players[] = $row;
+    }
+}
+
+$pendingUpdates = [];
+$pendingResult = $conn->query("SELECT ppu.id, ppu.player_id, ppu.status, ppu.created_at, ppu.data, ppu.img, p.name AS player_name
+    FROM player_pending_updates ppu
+    JOIN players p ON p.id = ppu.player_id
+    WHERE ppu.status = 'pending'
+    ORDER BY ppu.created_at DESC");
+if ($pendingResult && $pendingResult->num_rows > 0) {
+    while ($row = $pendingResult->fetch_assoc()) {
+        $pendingUpdates[] = $row;
+    }
+}
+
+$pendingNewPlayers = [];
+$pendingNewRes = $conn->query("SELECT id, name, team, created_at, data, img FROM player_pending_new_players WHERE status = 'pending' ORDER BY created_at DESC");
+if ($pendingNewRes && $pendingNewRes->num_rows > 0) {
+    while ($row = $pendingNewRes->fetch_assoc()) {
+        $pendingNewPlayers[] = $row;
+    }
+}
+
+$updateSettingsByTeam = [];
+$settingsResult = $conn->query("SELECT team, allowed_fields FROM player_update_settings");
+if ($settingsResult && $settingsResult->num_rows > 0) {
+    while ($row = $settingsResult->fetch_assoc()) {
+        $updateSettingsByTeam[$row['team']] = $row['allowed_fields'];
+    }
+}
+
+$settingsTeam = trim($_GET['settings_team'] ?? 'all');
+$allowedFieldsForSettingsTeam = [];
+if (isset($updateSettingsByTeam[$settingsTeam])) {
+    $decoded = json_decode($updateSettingsByTeam[$settingsTeam], true);
+    if (is_array($decoded)) {
+        $allowedFieldsForSettingsTeam = $decoded;
+    }
+}
+
+$conn->close();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1000 Hills Rugby Club - Player Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Your existing CSS remains the same */
+        :root {
+            --primary-color: #0a9113;
+            --primary-dark: #077a0e;
+            --secondary-color: #1a1a1a;
+            --secondary-light: #2e2e2e;
+            --accent-color: #f8f8f8;
+            --text-color: #333;
+            --light-text: #777;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+            --women-color: #e91e63;
+            --women-dark: #c2185b;
+            --academy-u18-color: #2196F3;
+            --academy-u18-dark: #1976D2;
+            --academy-u16-color: #FF9800;
+            --academy-u16-dark: #F57C00;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Montserrat", sans-serif;
+            color: var(--text-color);
+            background: var(--accent-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo img {
+            height: 50px;
+            width: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--white);
+            object-fit: cover;
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+
+        .logo span {
+            color: var(--primary-color);
+        }
+
+        .club-motto {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            font-weight: 600;
+            transition: var(--transition);
+            position: relative;
+            color: var(--white);
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .nav-links a.active {
+            color: var(--primary-color);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Form Styles */
+        .form-container {
+            background: var(--white);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            position: relative;
+            margin-bottom: 2rem;
+            padding-bottom: 0.75rem;
+            font-size: 1.75rem;
+        }
+
+        .section-title::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background-color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(10, 145, 19, 0.3);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Image Upload Styles */
+        .image-upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .image-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+
+        .image-preview-placeholder {
+            color: #ccc;
+            font-size: 3rem;
+        }
+
+        .remove-image-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .remove-image-btn:hover {
+            background-color: #dc3545;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .upload-btn {
+            border: 2px dashed #ccc;
+            color: #666;
+            background-color: white;
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-women {
+            background-color: var(--women-color);
+            color: var(--white);
+        }
+
+        .btn-women:hover {
+            background-color: var(--women-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-academy-u18 {
+            background-color: var(--academy-u18-color);
+            color: var(--white);
+        }
+
+        .btn-academy-u18:hover {
+            background-color: var(--academy-u18-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-academy-u16 {
+            background-color: var(--academy-u16-color);
+            color: var(--white);
+        }
+
+        .btn-academy-u16:hover {
+            background-color: var(--academy-u16-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Player Grid */
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 0;
+        }
+
+        .player-card {
+            background: var(--white);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .player-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .player-image-container {
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .player-card:hover .player-image {
+            transform: scale(1.05);
+        }
+
+        .player-image-placeholder {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            color: #ccc;
+            font-size: 3rem;
+        }
+
+        .player-info {
+            padding: 1.25rem;
+        }
+
+        .player-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .player-position {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .player-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--light-text);
+        }
+
+        .player-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .edit-btn {
+            color: var(--primary-color);
+        }
+
+        .edit-btn:hover {
+            color: var(--primary-dark);
+        }
+
+        .delete-btn {
+            color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            color: #c82333;
+        }
+
+        /* Team Badge */
+        .team-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-men {
+            background-color: rgba(10, 145, 19, 0.1);
+            color: var(--primary-color);
+        }
+
+        .team-women {
+            background-color: rgba(233, 30, 99, 0.1);
+            color: var(--women-color);
+        }
+
+        .team-academy-u18 {
+            background-color: rgba(33, 150, 243, 0.1);
+            color: var(--academy-u18-color);
+        }
+
+        .team-academy-u16 {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: var(--academy-u16-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                margin-top: 1rem;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .player-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="https://via.placeholder.com/50x50" alt="Club Logo" />
+                    <div class="logo-text">
+                        <h1><span>1000 Hills</span> Rugby Club</h1> 
+                    </div>
+                </div>
+
+                <nav class="nav-links"> 
+                    <a href="uploadprofile.php" class="active">Player Management</a>
+                </nav>
+
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Player Form -->
+        <div class="form-container">
+            <h2 class="section-title"><?php echo isset($_GET['edit']) ? 'Edit Player' : 'Add New Player'; ?></h2>
+            
+            <?php if ($message): ?>
+                <div class="alert <?php echo $messageClass; ?>">
+                    <?php echo $message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <form method="POST" action="uploadprofile.php" enctype="multipart/form-data">
+                <?php if (isset($_GET['edit']) && isset($currentPlayer['id'])): ?>
+                    <input type="hidden" name="id" value="<?php echo $currentPlayer['id']; ?>">
+                    <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($currentPlayer['img'] ?? ''); ?>">
+                <?php endif; ?>
+                
+                <div class="form-group">
+                    <label for="name" class="form-label">Full Name *</label>
+                    <input type="text" id="name" name="name" class="form-control" 
+                           value="<?php echo htmlspecialchars($currentPlayer['name'] ?? ''); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Player Image</label>
+                    <div class="image-upload-container">
+                        <div class="image-preview" id="imagePreview">
+                            <?php if (!empty($currentPlayer['img'])): ?>
+                                <img src="<?php echo htmlspecialchars($currentPlayer['img']); ?>" alt="Current Player Image">
+                                <?php if (isset($_GET['edit'])): ?>
+                                    <button type="button" class="remove-image-btn" id="removeImageBtn" title="Remove Image">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="image-preview-placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="upload-btn-wrapper">
+                            <button type="button" class="upload-btn" id="uploadBtn">
+                                <i class="fas fa-upload"></i> Choose Image
+                            </button>
+                            <input type="file" id="player_image" name="player_image" accept="image/*">
+                        </div>
+                        <small class="text-muted">Max file size: 2MB (JPEG, PNG, GIF, WEBP)</small>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                <div class="form-group">
+    <label for="team" class="form-label">Team *</label>
+    <select id="team" name="team" class="form-control" required>
+        <option value="men" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'men') ? 'selected' : ''; ?>>Men's Team</option>
+        <option value="women" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'women') ? 'selected' : ''; ?>>Women's Team</option>
+        <option value="academy_u18_boys" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'academy_u18_boys') ? 'selected' : ''; ?>>Academy U18 Boys</option>
+        <option value="academy_u18_girls" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'academy_u18_girls') ? 'selected' : ''; ?>>Academy U18 Girls</option>
+        <option value="academy_u16_boys" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'academy_u16_boys') ? 'selected' : ''; ?>>Academy U16 Boys</option>
+        <option value="academy_u16_girls" <?php echo (isset($currentPlayer['team']) && $currentPlayer['team'] == 'academy_u16_girls') ? 'selected' : ''; ?>>Academy U16 Girls</option>
+    </select>
+</div>
+
+                    
+<div class="form-group">
+    <label for="date_of_birth" class="form-label">Date of Birth</label>
+    <input type="date" id="date_of_birth" name="date_of_birth" class="form-control"
+           value="<?php echo htmlspecialchars($currentPlayer['date_of_birth'] ?? ''); ?>">
+</div>
+
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="age" class="form-label">Age</label>
+                        <input type="number" id="age" name="age" class="form-control" min="0" max="120"
+                               value="<?php echo htmlspecialchars($currentPlayer['age'] ?? ''); ?>" readonly>
+                        <small style="display:block;margin-top:0.35rem;color:#777;font-size:0.8rem;">
+                            Age is calculated automatically from Date of Birth.
+                        </small>
+                    </div>
+                    <div class="form-group"></div>
+                </div>
+                
+                <div class="form-row">
+                <div class="form-group">
+    <label for="role" class="form-label">Position/Role *</label>
+    <select id="role" name="role" class="form-control" required>
+        <?php
+        $positions = [
+            "Loose-head prop",
+            "Hooker",
+            "Tight-head prop",
+            "Second-row",
+            "Blindside flanker",
+            "Open side flanker",
+            "Number 8",
+            "Scrum-half",
+            "Fly-half",
+            "Left wing",
+            "Inside centre",
+            "Outside centre",
+            "Right wing",
+            "Full-back"
+        ];
+        $currentRole = $currentPlayer['role'] ?? '';
+        foreach ($positions as $position) {
+            $selected = ($position === $currentRole) ? 'selected' : '';
+            echo "<option value=\"$position\" $selected>$position</option>";
+        }
+        ?>
+    </select>
+</div>
+
+                    
+                    <div class="form-group">
+    <label for="player_category" class="form-label">Player Category *</label>
+    <select id="player_category" name="player_category" class="form-control" required>
+        <option value="Backs" <?php echo (isset($currentPlayer['position_category']) && $currentPlayer['position_category'] == 'Backs') ? 'selected' : ''; ?>>Backs</option>
+        <option value="Forwards" <?php echo (isset($currentPlayer['position_category']) && $currentPlayer['position_category'] == 'Forwards') ? 'selected' : ''; ?>>Forwards</option>
+    </select>
+</div>
+
+                </div>
+                
+                <div class="form-row">
+    <div class="form-group">
+        <label for="category" class="form-label">Special Role</label>
+        <select id="category" name="category" class="form-control">
+            <option value="">Regular Player</option>
+            <option value="Captain" <?php echo (isset($currentPlayer['special_role']) && $currentPlayer['special_role'] == 'Captain') ? 'selected' : ''; ?>>Captain</option>
+            <option value="Vice-Captain" <?php echo (isset($currentPlayer['special_role']) && $currentPlayer['special_role'] == 'Vice-Captain') ? 'selected' : ''; ?>>Vice-Captain</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="joined" class="form-label">Year Joined</label>
+        <input type="text" id="joined" name="joined" class="form-control" 
+               value="<?php echo htmlspecialchars($currentPlayer['joined'] ?? ''); ?>">
+    </div>
+</div>
+
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="height" class="form-label">Height (cm)</label>
+                        <input type="text" id="height" name="height" class="form-control" 
+                               value="<?php echo htmlspecialchars($currentPlayer['height'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="weight" class="form-label">Weight (kg)</label>
+                        <input type="text" id="weight" name="weight" class="form-control" 
+                               value="<?php echo htmlspecialchars($currentPlayer['weight'] ?? ''); ?>">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="games" class="form-label">Games Played for 1000 Hills Rugby</label>
+                        <input type="number" id="games" name="games" class="form-control" min="0"
+                               value="<?php echo htmlspecialchars($currentPlayer['games'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="points" class="form-label">Total Points for 1000 Hills Rugby</label>
+                        <input type="number" id="points" name="points" class="form-control" min="0"
+                               value="<?php echo htmlspecialchars($currentPlayer['points'] ?? ''); ?>">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tries" class="form-label">Total Tries for 1000 Hills Rugby</label>
+                        <input type="number" id="tries" name="tries" class="form-control" min="0"
+                               value="<?php echo htmlspecialchars($currentPlayer['tries'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nationality" class="form-label">Nationality</label>
+                        <input type="text" id="nationality" name="nationality" class="form-control" 
+                               value="<?php echo htmlspecialchars($currentPlayer['nationality'] ?? ''); ?>">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="placeOfBirth" class="form-label">Place of Birth</label>
+                    <input type="text" id="placeOfBirth" name="placeOfBirth" class="form-control" 
+                           value="<?php echo htmlspecialchars($currentPlayer['placeOfBirth'] ?? ''); ?>">
+                </div>
+                
+                <div class="form-group">
+                    <label for="honours" class="form-label">Honours/Achievements</label>
+                    <textarea id="honours" name="honours" class="form-control" rows="3"><?php echo htmlspecialchars($currentPlayer['honours'] ?? ''); ?></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="previousClubs" class="form-label">Previous Clubs</label>
+                    <textarea id="previousClubs" name="previousClubs" class="form-control" rows="2"><?php echo htmlspecialchars($currentPlayer['previousClubs'] ?? ''); ?></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sponsor" class="form-label">Sponsor</label>
+                        <input type="text" id="sponsor" name="sponsor" class="form-control" 
+                               value="<?php echo htmlspecialchars($currentPlayer['sponsor'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sponsorDesc" class="form-label">Sponsor Description</label>
+                        <input type="text" id="sponsorDesc" name="sponsorDesc" class="form-control" 
+                               value="<?php echo htmlspecialchars($currentPlayer['sponsorDesc'] ?? ''); ?>">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <?php if (isset($_GET['edit'])): ?>
+                        <a href="uploadprofile.php" class="btn btn-outline">Cancel</a>
+                    <?php else: ?>
+                        <button type="reset" class="btn btn-outline">Reset</button>
+                    <?php endif; ?>
+                    <button type="submit" class="btn btn-primary"><?php echo isset($_GET['edit']) ? 'Update' : 'Save'; ?> Player</button>
+                </div>
+            </form>
+
+            <!-- Hidden form used to remove existing image (submitted via JS) -->
+            <?php if (isset($_GET['edit']) && !empty($currentPlayer['img'])): ?>
+                <form id="removeImageFormReal" method="POST" action="uploadprofile.php" style="display:none;">
+                    <input type="hidden" name="id" value="<?php echo $currentPlayer['id']; ?>">
+                    <input type="hidden" name="remove_image" value="1">
+                </form>
+            <?php endif; ?>
+        </div>
+
+        <!-- Player List -->
+        <div class="form-container">
+            <h2 class="section-title">New Player Link</h2>
+
+            <form method="POST" action="uploadprofile.php" style="margin-bottom:1rem;">
+                <input type="hidden" name="generate_new_player_link" value="1">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new_player_team" class="form-label">Team Category</label>
+                        <select id="new_player_team" name="new_player_team" class="form-control">
+                            <option value="men">Men's Team</option>
+                            <option value="women">Women's Team</option>
+                            <option value="academy_u18_boys">Academy U18 Boys</option>
+                            <option value="academy_u18_girls">Academy U18 Girls</option>
+                            <option value="academy_u16_boys">Academy U16 Boys</option>
+                            <option value="academy_u16_girls">Academy U16 Girls</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;">
+                        <button type="submit" class="btn btn-primary">Generate Secret Link</button>
+                    </div>
+                </div>
+            </form>
+
+            <h2 class="section-title">Player Update Settings</h2>
+
+            <form method="GET" action="uploadprofile.php" style="margin-bottom:1rem;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="settings_team" class="form-label">Team Category</label>
+                        <select id="settings_team" name="settings_team" class="form-control">
+                            <option value="all" <?php echo $settingsTeam === 'all' ? 'selected' : ''; ?>>All Teams (default)</option>
+                            <option value="men" <?php echo $settingsTeam === 'men' ? 'selected' : ''; ?>>Men's Team</option>
+                            <option value="women" <?php echo $settingsTeam === 'women' ? 'selected' : ''; ?>>Women's Team</option>
+                            <option value="academy_u18_boys" <?php echo $settingsTeam === 'academy_u18_boys' ? 'selected' : ''; ?>>Academy U18 Boys</option>
+                            <option value="academy_u18_girls" <?php echo $settingsTeam === 'academy_u18_girls' ? 'selected' : ''; ?>>Academy U18 Girls</option>
+                            <option value="academy_u16_boys" <?php echo $settingsTeam === 'academy_u16_boys' ? 'selected' : ''; ?>>Academy U16 Boys</option>
+                            <option value="academy_u16_girls" <?php echo $settingsTeam === 'academy_u16_girls' ? 'selected' : ''; ?>>Academy U16 Girls</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;">
+                        <button type="submit" class="btn btn-primary">Load</button>
+                    </div>
+                </div>
+            </form>
+
+            <form method="POST" action="uploadprofile.php">
+                <input type="hidden" name="save_update_settings" value="1">
+                <input type="hidden" name="team_setting" value="<?php echo htmlspecialchars($settingsTeam); ?>">
+
+                <div class="form-group">
+                    <label class="form-label">Allow players to submit these fields</label>
+                    <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:0.5rem;">
+                        <?php
+                            $allFields = [
+                                'name' => 'Name',
+                                'team' => 'Team',
+                                'role' => 'Position/Role',
+                                'position_category' => 'Player Category',
+                                'special_role' => 'Special Role',
+                                'date_of_birth' => 'Date of Birth',
+                                'height' => 'Height',
+                                'weight' => 'Weight',
+                                'games' => 'Games',
+                                'points' => 'Points',
+                                'tries' => 'Tries',
+                                'placeOfBirth' => 'Place of Birth',
+                                'nationality' => 'Nationality',
+                                'honours' => 'Honours/Achievements',
+                                'joined' => 'Year Joined',
+                                'previousClubs' => 'Previous Clubs',
+                                'sponsor' => 'Sponsor',
+                                'sponsorDesc' => 'Sponsor Description',
+                                'img' => 'Profile Image'
+                            ];
+                            foreach ($allFields as $key => $label) {
+                                $checked = in_array($key, $allowedFieldsForSettingsTeam, true) ? 'checked' : '';
+                                echo '<label style="display:flex;gap:0.5rem;align-items:center;">'
+                                    . '<input type="checkbox" name="allowed_fields[]" value="' . htmlspecialchars($key) . '" ' . $checked . '>'
+                                    . htmlspecialchars($label)
+                                    . '</label>';
+                            }
+                        ?>
+                    </div>
+                </div>
+
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+            </form>
+
+            <h2 class="section-title">Pending New Players</h2>
+
+            <?php if (empty($pendingNewPlayers)): ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No pending new player applications.
+                </div>
+            <?php else: ?>
+                <div class="player-grid">
+                    <?php foreach ($pendingNewPlayers as $np): ?>
+                        <?php
+                            $npData = json_decode($np['data'] ?? '', true);
+                            if (!is_array($npData)) {
+                                $npData = [];
+                            }
+                            $fieldLabelsNew = [
+                                'name' => 'Name',
+                                'team' => 'Team',
+                                'role' => 'Position/Role',
+                                'position_category' => 'Player Category',
+                                'special_role' => 'Special Role',
+                                'date_of_birth' => 'Date of Birth',
+                                'age' => 'Age',
+                                'height' => 'Height',
+                                'weight' => 'Weight',
+                                'games' => 'Games',
+                                'points' => 'Points',
+                                'tries' => 'Tries',
+                                'placeOfBirth' => 'Place of Birth',
+                                'nationality' => 'Nationality',
+                                'honours' => 'Honours/Achievements',
+                                'joined' => 'Year Joined',
+                                'previousClubs' => 'Previous Clubs',
+                                'sponsor' => 'Sponsor',
+                                'sponsorDesc' => 'Sponsor Description'
+                            ];
+                        ?>
+                        <div class="player-card">
+                            <div class="player-info">
+                                <h3 class="player-name"><?php echo htmlspecialchars($np['name']); ?></h3>
+                                <p class="player-position">Team: <?php echo htmlspecialchars($np['team']); ?></p>
+                                <p class="player-position">Submitted: <?php echo htmlspecialchars($np['created_at']); ?></p>
+
+                                <?php if (!empty($np['img'])): ?>
+                                    <div style="margin-top:10px;">
+                                        <img src="<?php echo htmlspecialchars($np['img']); ?>" alt="Pending player image" style="max-width:140px;max-height:140px;border-radius:10px;object-fit:cover;">
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if (!empty($npData)): ?>
+                                    <div style="margin-top:10px;">
+                                        <?php foreach ($fieldLabelsNew as $k => $label): ?>
+                                            <?php if (isset($npData[$k]) && trim((string)$npData[$k]) !== ''): ?>
+                                                <div style="margin:2px 0;"><strong><?php echo htmlspecialchars($label); ?>:</strong> <?php echo nl2br(htmlspecialchars((string)$npData[$k])); ?></div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="player-actions">
+                                    <form method="POST" action="uploadprofile.php">
+                                        <input type="hidden" name="review_pending_new_player" value="1">
+                                        <input type="hidden" name="pending_id" value="<?php echo (int)$np['id']; ?>">
+                                        <input type="hidden" name="review_action" value="approve">
+                                        <button type="submit" class="action-btn edit-btn" title="Approve">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="uploadprofile.php">
+                                        <input type="hidden" name="review_pending_new_player" value="1">
+                                        <input type="hidden" name="pending_id" value="<?php echo (int)$np['id']; ?>">
+                                        <input type="hidden" name="review_action" value="reject">
+                                        <button type="submit" class="action-btn delete-btn" title="Reject">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <h2 class="section-title">Pending Updates</h2>
+
+            <?php if (empty($pendingUpdates)): ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No pending updates.
+                </div>
+            <?php else: ?>
+                <div class="player-grid">
+                    <?php foreach ($pendingUpdates as $pu): ?>
+                        <?php
+                            $puData = json_decode($pu['data'] ?? '', true);
+                            if (!is_array($puData)) {
+                                $puData = [];
+                            }
+                            $fieldLabelsUpd = [
+                                'name' => 'Name',
+                                'team' => 'Team',
+                                'role' => 'Position/Role',
+                                'position_category' => 'Player Category',
+                                'special_role' => 'Special Role',
+                                'date_of_birth' => 'Date of Birth',
+                                'age' => 'Age',
+                                'height' => 'Height',
+                                'weight' => 'Weight',
+                                'games' => 'Games',
+                                'points' => 'Points',
+                                'tries' => 'Tries',
+                                'placeOfBirth' => 'Place of Birth',
+                                'nationality' => 'Nationality',
+                                'honours' => 'Honours/Achievements',
+                                'joined' => 'Year Joined',
+                                'previousClubs' => 'Previous Clubs',
+                                'sponsor' => 'Sponsor',
+                                'sponsorDesc' => 'Sponsor Description'
+                            ];
+                        ?>
+                        <div class="player-card">
+                            <div class="player-info">
+                                <h3 class="player-name"><?php echo htmlspecialchars($pu['player_name']); ?></h3>
+                                <p class="player-position">Submitted: <?php echo htmlspecialchars($pu['created_at']); ?></p>
+
+                                <?php if (!empty($pu['img'])): ?>
+                                    <div style="margin-top:10px;">
+                                        <img src="<?php echo htmlspecialchars($pu['img']); ?>" alt="Pending update image" style="max-width:140px;max-height:140px;border-radius:10px;object-fit:cover;">
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if (!empty($puData)): ?>
+                                    <div style="margin-top:10px;">
+                                        <?php foreach ($fieldLabelsUpd as $k => $label): ?>
+                                            <?php if (isset($puData[$k]) && trim((string)$puData[$k]) !== ''): ?>
+                                                <div style="margin:2px 0;"><strong><?php echo htmlspecialchars($label); ?>:</strong> <?php echo nl2br(htmlspecialchars((string)$puData[$k])); ?></div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="player-actions">
+                                    <form method="POST" action="uploadprofile.php">
+                                        <input type="hidden" name="review_pending_update" value="1">
+                                        <input type="hidden" name="pending_id" value="<?php echo (int)$pu['id']; ?>">
+                                        <input type="hidden" name="review_action" value="approve">
+                                        <button type="submit" class="action-btn edit-btn" title="Approve">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="uploadprofile.php">
+                                        <input type="hidden" name="review_pending_update" value="1">
+                                        <input type="hidden" name="pending_id" value="<?php echo (int)$pu['id']; ?>">
+                                        <input type="hidden" name="review_action" value="reject">
+                                        <button type="submit" class="action-btn delete-btn" title="Reject">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <h2 class="section-title">Player Roster</h2>
+
+            <?php if (empty($players)): ?>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No players found. Add your first player above.
+                </div>
+            <?php else: ?>
+                <div class="player-grid">
+                    <?php foreach ($players as $player): ?>
+                        <div class="player-card">
+                            <div class="player-image-container">
+                                <?php if (!empty($player['img'])): ?>
+                                    <img src="<?php echo htmlspecialchars($player['img']); ?>" alt="<?php echo htmlspecialchars($player['name']); ?>" class="player-image">
+                                <?php else: ?>
+                                    <div class="player-image-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="player-info">
+                                <span class="team-badge team-<?php 
+                                    if (strpos($player['team'], 'academy_u18') !== false) echo 'academy-u18';
+                                    elseif (strpos($player['team'], 'academy_u16') !== false) echo 'academy-u16';
+                                    else echo $player['team'];
+                                ?>">
+                                    <?php 
+                                        $teamName = $player['team'];
+                                        if ($teamName == 'men') echo "Men's Team";
+                                        elseif ($teamName == 'women') echo "Women's Team";
+                                        elseif ($teamName == 'academy_u18_boys') echo "Academy U18 Boys";
+                                        elseif ($teamName == 'academy_u18_girls') echo "Academy U18 Girls";
+                                        elseif ($teamName == 'academy_u16_boys') echo "Academy U16 Boys";
+                                        elseif ($teamName == 'academy_u16_girls') echo "Academy U16 Girls";
+                                        else echo ucfirst($teamName);
+                                    ?>
+                                </span>
+                                <h3 class="player-name"><?php echo htmlspecialchars($player['name']); ?></h3>
+                                <p class="player-position"><?php echo htmlspecialchars($player['role']); ?></p>
+                                <?php if (!empty($player['special_role'])): ?>
+                                    <p><small><strong><?php echo htmlspecialchars($player['special_role']); ?></strong> (<?php echo htmlspecialchars($player['position_category']); ?>)</small></p>
+                                <?php else: ?>
+                                    <p><small><?php echo htmlspecialchars($player['position_category']); ?></small></p>
+                                <?php endif; ?>
+                                <div class="player-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-value"><?php echo displayPlayerAge($player); ?></span>
+                                        <span class="stat-label">Age</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value"><?php echo htmlspecialchars($player['height']); ?> cm</span>
+                                        <span class="stat-label">Height</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value"><?php echo htmlspecialchars($player['weight']); ?> kg</span>
+                                        <span class="stat-label">Weight</span>
+                                    </div>
+                                </div>
+                                <div class="player-actions">
+                                    <a href="?edit=<?php echo $player['id']; ?>" class="action-btn edit-btn" title="Edit">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form method="POST" action="uploadprofile.php">
+                                        <input type="hidden" name="generate_update_link" value="1">
+                                        <input type="hidden" name="id" value="<?php echo (int)$player['id']; ?>">
+                                        <button type="submit" class="action-btn edit-btn" title="Generate Link">
+                                            <i class="fas fa-link"></i> Link
+                                        </button>
+                                    </form>
+                                    <a href="?delete=<?php echo $player['id']; ?>" class="action-btn delete-btn" title="Delete">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+
+        </div>
+    </main>
+
+    <script src="uploadprofile.js" defer></script>
+</body>
+</html>

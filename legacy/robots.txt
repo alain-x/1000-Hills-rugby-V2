@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /images/
+Allow: /uploads/
+Sitemap: https://www.1000hillsrugby.rw/sitemap.xml
+
+# Block sensitive and admin endpoints
+Disallow: /setup_database.php
+Disallow: /debug_upload.php
+Disallow: /upload.php
+Disallow: /upload_fixtures.php
+Disallow: /uploadtables.php
+Disallow: /test_crud.php
+Disallow: /check_database.php
+Disallow: /uploadevent.php
+Disallow: /uploadprofile.php
+Disallow: /uploadsponsors.php
+Disallow: /logos/

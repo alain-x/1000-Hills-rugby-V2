@@ -1,0 +1,336 @@
+* {
+  padding: 0px;
+  margin: 0px;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+/* Navigation */
+.navbar a {
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.navbar a:hover {
+  color: #006838;
+}
+
+/* Text Animation */
+.text-container {
+  transform: translateX(5%);
+  opacity: 0;
+  animation: fadeInText 2s forwards;
+}
+.text-container h1 {
+  animation: moveInLeft 2s forwards;
+}
+.text-container p {
+  animation: moveInRight 2s forwards;
+}
+
+/* Display the menu when the checkbox is checked */
+#menu-toggle:checked ~ #menu {
+  display: block;
+}
+
+/* Hide the menu if not checked */
+#menu:hover {
+  display: block;
+}
+
+/* ---Home Page--- */
+/* Home Animation */
+
+/* Home Last-Section */
+.club-in-image {
+  background-image: url(./images/image-2.jpg);
+}
+
+/* ---News Page--- */
+/* News Animation */
+.news-home-page {
+  background-image: url(./images/26.JPG);
+}
+
+/* ---Events Page--- */
+/* Events Animation */
+.events-home-page {
+  background-image: url(./images/events-bg.jpg);
+}
+/* Kids-Events */
+.event-kids-img {
+  background-image: url(./images/kids-events.jpg);
+}
+
+/* ---Contact Page--- */
+/* Contact Animation */
+.contact-home-page {
+  background-image: url(./images/tacle.jpg);
+}
+/* Contact Form */
+.contact-form input,
+.contact-form textarea {
+  border-bottom: 1px solid gray;
+  padding-bottom: 8px;
+}
+/* Contact Last-Section */
+.contact-last {
+  background-image: url(./images/4blripeq.png);
+}
+
+/* ---Services Page--- */
+/* Services Animation */
+.services-home-page {
+  background-image: url(./images/tacle1.jpg);
+  width: auto;
+  height: 100vh;
+}
+/* Services Programs-Card */
+.service-cards:hover {
+  background-color: #f26522;
+  border-radius: 16px;
+  color: white;
+}
+.service-cards:hover .ser-svg {
+  color: white;
+}
+/* Services Mission-Section */
+.service-img-1 {
+  background-image: url(images/tacle.jpg);
+}
+/* Services Experience-Section */
+.service-img-2 {
+  background-image: url(images/tacle2.jpg);
+}
+
+/* Home-Page & Service-Page Fixed Image */
+.fixed-image {
+  background-image: url(./images/celebr.jpg);
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Home-Page & Service-Page Testimonial-Section */
+.first-half {
+  background-image: url(./images/sover.jpg);
+}
+.second-half {
+  background-image: url(./images/traing.JPG);
+}
+
+.image-div {
+  height: 420px;
+  width: 590px;
+}
+.slideshow-container {
+  position: relative;
+}
+ .slideshow-bg {
+  pointer-events: none;
+  z-index: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  will-change: opacity;
+  opacity: 0;
+  transition: opacity 900ms ease-in-out;
+ }
+ .slideshow-bg.is-visible {
+  opacity: 1;
+ }
+.cycle-button {
+  margin-bottom: 70px;
+  cursor: pointer;
+}
+@media (max-width: 500px) {
+  .responsive-heading span {
+    font-size: 2.7rem; /* Adjust as needed */
+  }
+}
+
+/* Keyframes */
+@keyframes fadeInText {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes moveInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes moveInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsiveness */
+@media screen and (max-width: 290px) {
+  .services-home-page > .text-container h1 {
+    font-size: 32px;
+  }
+}
+@media screen and (max-width: 350px) {
+  .text-container h1 {
+    font-size: 60px;
+  }
+  .testimonial-1 {
+    font-size: 20px;
+  }
+  .services-home-page > .text-container h1 {
+    font-size: 40px;
+  }
+  .services-home-page > .text-container p {
+    font-size: 16px;
+  }
+  #menu {
+    max-height: 80vh; /* Adjust as needed */
+    overflow-y: auto;
+  }
+}
+@media screen and (max-width: 450px) {
+  #menu {
+    max-height: 80vh; /* Adjust as needed */
+    overflow-y: auto;
+  }
+
+  .list-2 {
+    display: none;
+  }
+  .list-1 {
+    display: none;
+  }
+  .text-center-1 {
+    text-align: center;
+  }
+  .image-div {
+    height: 300px;
+    width: 300px;
+    width: 100%;
+    margin: auto;
+  }
+  .image-2-div .image-div {
+    margin-top: 150px;
+  }
+  .image-2-text {
+    text-align: center;
+    padding: 0px 10px;
+  }
+  .color-yellow {
+    padding-top: 16px;
+  }
+  .fixed-img-text {
+    font-size: 36px;
+  }
+  .services-home-page > .text-container h1 {
+    font-size: 48px;
+  }
+  .table-div-1,
+  .table-div-2 {
+    display: flex;
+    flex-direction: column;
+  }
+  .table-middle-bo {
+    display: none;
+  }
+}
+@media (min-width: 451px) and (max-width: 650px) {
+  .fixed-img-text {
+    font-size: 44px;
+  }
+}
+@media (min-width: 451px) and (max-width: 950px) {
+  .list-2 {
+    display: none;
+  }
+  .list-1 {
+    display: none;
+  }
+  .image-div img {
+    height: 450px;
+    width: 550px;
+    width: 100%;
+    margin: auto;
+  }
+  .image-2-text {
+    text-align: center;
+    padding: 0px 10px;
+  }
+  .color-yellow {
+    padding-top: 16px;
+  }
+  .image-2-div .image-div {
+    margin-top: 150px;
+  }
+  .text-befor-btn {
+    width: 60%;
+    margin: auto;
+  }
+  #menu {
+    max-height: 80vh; /* Adjust as needed */
+    overflow-y: auto;
+  }
+}
+@media (min-width: 951px) and (max-width: 1000px) {
+  .fixed-image h1 {
+    font-size: 85px;
+  }
+  .list-2 {
+    display: none;
+  }
+  .programs img {
+    height: 220px;
+  }
+  .first-half {
+    height: 0vh;
+  }
+  #menu {
+    max-height: 80vh; /* Adjust as needed */
+    overflow-y: auto;
+  }
+}
+
+/* Increase padding and font size for better clickability */
+#menu ul li a {
+  padding: 12px 16px;
+  font-size: 16px;
+}
+
+/* Hover background for main menu items */
+#menu ul li a:hover {
+  background-color: #248e48; /* green */
+  color: white;
+}
+
+/* Dropdown menu styling */
+#menu ul li ul {
+  width: auto;
+  padding: 0;
+  border-radius: 8px;
+}
+
+#menu ul li ul li a {
+  padding: 10px 16px;
+  color: #333;
+  font-size: 14px;
+}
+
+#menu ul li ul li a:hover {
+  background-color: #248e48; /* light gray */
+  color: white; /* green */
+}

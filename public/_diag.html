@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>diag2</title></head>
+<body style="margin:0">
+<iframe id="f" src="/about" style="width:1162px;height:578px;border:0"></iframe>
+<pre id="out">loading</pre>
+<script>
+const f = document.getElementById('f');
+f.addEventListener('load', () => {
+  try {
+    const w = f.contentWindow, d = w.document;
+    const info = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const cs = w.getComputedStyle(el);
+      return {
+        tag: el.tagName + '.' + (el.className || ''),
+        rectTop: Math.round(r.top),
+        rectTopDoc: Math.round(r.top + w.scrollY),
+        height: Math.round(r.height),
+        offsetTop: el.offsetTop,
+        offsetParent: el.offsetParent ? (el.offsetParent.tagName + '.' + el.offsetParent.className) : null,
+        display: cs.display,
+        position: cs.position,
+        marginTop: cs.marginTop,
+        marginBottom: cs.marginBottom,
+        gridArea: cs.gridArea,
+        alignSelf: cs.alignSelf
+      };
+    };
+    const card = d.querySelector('.involved-card');
+    const aside = d.querySelector('aside');
+    const first = aside ? aside.firstElementChild : null;
+    const data = {
+      scrollY: w.scrollY,
+      docHeight: d.documentElement.scrollHeight,
+      aside: info(aside),
+      asideChildren: aside ? Array.from(aside.children).map(info) : null,
+      first: info(first),
+      card: info(card),
+      cardPrev: card ? info(card.previousElementSibling) : null,
+      row: info(d.querySelector('.row.g-5')),
+      col8: info(d.querySelector('.col-lg-8'))
+    };
+    document.getElementById('out').textContent = 'DIAG::' + JSON.stringify(data);
+  } catch (e) {
+    document.getElementById('out').textContent = 'DIAGERR::' + e.message;
+  }
+});
+</script>
+</body>
+</html>
