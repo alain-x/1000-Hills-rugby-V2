@@ -120,7 +120,7 @@
                         <a href="{{ route('tables.index') }}" class="btn btn-outline-forest">League tables</a>
                     </div>
                     @if($event)
-                        <div class="card-clean mt-4 p-3">
+                        <div class="card-clean h-auto mt-4 p-3">
                             <div class="d-flex gap-3 align-items-start">
                                 <div class="text-center" style="min-width:64px;">
                                     <span class="d-block display-font fw-bold text-forest" style="font-size:1.8rem; line-height:1;">{{ $event->event_date->format('d') }}</span>
@@ -191,13 +191,13 @@
                                     <a href="{{ route('events.index') }}" class="small">Full schedule</a>
                                 </div>
                                 @forelse($schedule as $slot)
-                                    <div class="d-flex align-items-center gap-3 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                    <div class="week-slot d-flex align-items-center gap-3 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                                         <span class="fixture-status" style="min-width:92px; text-align:center;">{{ $slot->day }}</span>
-                                        <div class="flex-grow-1">
+                                        <div class="flex-grow-1" style="min-width:0;">
                                             <div style="font-size:.88rem; font-weight:600;">{{ $slot->activity }}</div>
                                             <div class="text-muted-2" style="font-size:.74rem;"><i class="bi bi-geo-alt me-1"></i>{{ $slot->location }}</div>
                                         </div>
-                                        <span class="text-forest fw-bold" style="font-size:.78rem;">{{ $slot->time_range }}</span>
+                                        <span class="week-time text-forest fw-bold" style="font-size:.78rem;">{{ $slot->time_range }}</span>
                                     </div>
                                 @empty
                                     <p class="text-muted-2 mb-0 small">Training schedule will be published soon.</p>
@@ -219,7 +219,7 @@
             </div>
             <div class="row g-3">
                 @foreach($teams as $team)
-                    <div class="col-6 col-lg-4 reveal">
+                    <div class="col-6 col-md-4 col-lg-4 reveal">
                         <a href="{{ route('teams.show', $team) }}" class="text-decoration-none">
                             <div class="card-clean team-card">
                                 <div class="team-crest">

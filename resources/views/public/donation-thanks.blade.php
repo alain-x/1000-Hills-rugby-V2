@@ -4,7 +4,7 @@
 @section('meta_description', 'Thank you for supporting 1000 Hills Rugby.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('uploads/1740072895_fans.JPG') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_fans.JPG') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item"><a href="{{ route('donate') }}">Donate</a></li><li class="breadcrumb-item active">Thank you</li></ol>

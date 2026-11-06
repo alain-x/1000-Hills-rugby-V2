@@ -4,7 +4,7 @@
 @section('meta_description', 'Standings for the competitions 1000 Hills Rugby competes in, across men’s and women’s rugby.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('images/league-table-banner.png') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_fans.JPG') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Tables</li></ol>
@@ -56,9 +56,9 @@
                                 <th style="width:48px;">#</th>
                                 <th>Club</th>
                                 <th class="text-center">P</th>
-                                <th class="text-center">W</th>
-                                <th class="text-center">D</th>
-                                <th class="text-center">L</th>
+                                <th class="text-center hide-xs">W</th>
+                                <th class="text-center hide-xs">D</th>
+                                <th class="text-center hide-xs">L</th>
                                 <th class="text-center d-none d-md-table-cell">PF</th>
                                 <th class="text-center d-none d-md-table-cell">PA</th>
                                 <th class="text-center">+/-</th>
@@ -78,9 +78,9 @@
                                         </div>
                                     </td>
                                     <td class="text-center">{{ $standing->matches_played }}</td>
-                                    <td class="text-center">{{ $standing->matches_won }}</td>
-                                    <td class="text-center">{{ $standing->matches_drawn }}</td>
-                                    <td class="text-center">{{ $standing->matches_lost }}</td>
+                                    <td class="text-center hide-xs">{{ $standing->matches_won }}</td>
+                                    <td class="text-center hide-xs">{{ $standing->matches_drawn }}</td>
+                                    <td class="text-center hide-xs">{{ $standing->matches_lost }}</td>
                                     <td class="text-center d-none d-md-table-cell">{{ $standing->points_for }}</td>
                                     <td class="text-center d-none d-md-table-cell">{{ $standing->points_against }}</td>
                                     <td class="text-center">{{ $standing->points_difference > 0 ? '+' : '' }}{{ $standing->points_difference }}</td>

@@ -4,7 +4,7 @@
 @section('meta_description', 'The partners and sponsors who support 1000 Hills Rugby and our community programmes.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('uploads/1740072895_fans.JPG') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_fans.JPG') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Partners</li></ol>

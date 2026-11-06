@@ -1,7 +1,8 @@
 <?php
 
 use App\Models\Setting;
-use Illuminate\Support\Facades\Storage;
+use App\Models\StoredImage;
+use App\Support\ImageStringStore;
 use Illuminate\Support\Str;
 
 if (! function_exists('setting')) {
@@ -34,20 +35,46 @@ if (! function_exists('media_url')) {
     function media_url(?string $path, ?string $fallback = null): string
     {
         if (blank($path)) {
-            return $fallback ? asset($fallback) : asset('images/placeholder.svg');
+            return $fallback ? media_url($fallback) : media_placeholder();
         }
 
-        if (Str::startsWith($path, ['http://', 'https://'])) {
+        if (Str::startsWith($path, ['http://', 'https://', 'data:'])) {
             return $path;
         }
 
-        return asset(ltrim($path, '/'));
+        $storedId = StoredImage::idForPath($path);
+
+        if ($storedId) {
+            return route('media.show', $storedId);
+        }
+
+        $publicPath = public_path(StoredImage::normalizePath($path));
+
+        if (is_file($publicPath)) {
+            return asset(StoredImage::normalizePath($path));
+        }
+
+        return $fallback ? media_url($fallback) : media_placeholder();
+    }
+}
+
+if (! function_exists('media_placeholder')) {
+    function media_placeholder(): string
+    {
+        $storedId = StoredImage::idForPath('images/placeholder.svg');
+
+        if ($storedId) {
+            return route('media.show', $storedId);
+        }
+
+        return asset('images/placeholder.svg');
     }
 }
 
 if (! function_exists('upload_media')) {
     /**
-     * Store an uploaded file in public/uploads/{folder} and return its relative path.
+     * Store an uploaded image as a base64 string in the database.
+     * Other files are still saved under public/uploads/{folder}.
      */
     function upload_media(?Illuminate\Http\UploadedFile $file, string $folder = 'general', ?string $oldPath = null, ?array $allowedExtensions = null): ?string
     {
@@ -55,22 +82,43 @@ if (! function_exists('upload_media')) {
             return $oldPath;
         }
 
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: '');
+
         if (! empty($allowedExtensions)) {
-            $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: '');
             if ($ext === '' || ! in_array($ext, $allowedExtensions, true)) {
                 abort(422, 'This file type is not allowed.');
             }
         }
 
         $folder = trim($folder, '/');
-        $name = now()->format('YmdHis').'-'.Str::random(8).'.'.strtolower($file->getClientOriginalExtension() ?: 'bin');
-        $file->move(public_path('uploads/'.$folder), $name);
+        $name = now()->format('YmdHis').'-'.Str::random(8).'.'.($ext !== '' ? $ext : 'bin');
+        $store = app(ImageStringStore::class);
+        $mime = $store->mimeForExtension($ext, $file->getMimeType());
+
+        if ($mime && empty($allowedExtensions)) {
+            $binary = file_get_contents($file->getRealPath());
+
+            if ($binary === false) {
+                abort(422, 'The image could not be read.');
+            }
+
+            $newPath = 'uploads/'.$folder.'/'.$name;
+            StoredImage::storeBytes($newPath, $mime, $binary);
+            delete_media($oldPath);
+
+            return $newPath;
+        }
+
+        $destination = public_path('uploads/'.$folder);
+
+        if (! is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $file->move($destination, $name);
 
         $newPath = 'uploads/'.$folder.'/'.$name;
-
-        if ($oldPath && ! Str::startsWith($oldPath, ['http://', 'https://']) && file_exists(public_path($oldPath))) {
-            @unlink(public_path($oldPath));
-        }
+        delete_media($oldPath);
 
         return $newPath;
     }
@@ -79,12 +127,16 @@ if (! function_exists('upload_media')) {
 if (! function_exists('delete_media')) {
     function delete_media(?string $path): void
     {
-        if (blank($path) || Str::startsWith($path, ['http://', 'https://'])) {
+        if (blank($path) || Str::startsWith($path, ['http://', 'https://', 'data:'])) {
             return;
         }
 
-        if (file_exists(public_path($path))) {
-            @unlink(public_path($path));
+        StoredImage::deletePath($path);
+
+        $publicPath = public_path(StoredImage::normalizePath($path));
+
+        if (is_file($publicPath)) {
+            @unlink($publicPath);
         }
     }
 }

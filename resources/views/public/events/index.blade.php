@@ -4,7 +4,7 @@
 @section('meta_description', 'Upcoming events, tournaments and the weekly training schedule at 1000 Hills Rugby in Kigali.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('images/events-bg.jpg') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('images/events-bg.jpg') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Events</li></ol>

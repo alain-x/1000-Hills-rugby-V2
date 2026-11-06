@@ -4,7 +4,7 @@
 @section('meta_description', 'Meet the men’s, women’s and academy squads of 1000 Hills Rugby in Kigali, Rwanda.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('uploads/1740072895_1hr_Team.JPG') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_1hr_Team.JPG') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Teams</li></ol>
@@ -30,7 +30,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="p-3 d-flex align-items-center justify-content-between">
+                            <div class="p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
                                 <div class="text-muted-2 small"><i class="bi bi-people me-1"></i>{{ $team->players_count }} published players</div>
                                 <a href="{{ route('teams.show', $team) }}" class="btn btn-outline-forest btn-sm">View squad <i class="bi bi-arrow-right ms-1"></i></a>
                             </div>

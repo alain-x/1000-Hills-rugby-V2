@@ -4,7 +4,7 @@
 @section('meta_description', 'Your donation helps 1000 Hills Rugby provide kit, training, education support and safe spaces for young people in Kigali.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('uploads/1740072895_fans.JPG') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_fans.JPG') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Donate</li></ol>

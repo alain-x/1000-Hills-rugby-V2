@@ -24,8 +24,8 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="icon" type="image/png" href="{{ asset('images/favicon-32x32.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ media_url('images/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" href="{{ media_url('images/apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('images/site.webmanifest') }}">
 
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">

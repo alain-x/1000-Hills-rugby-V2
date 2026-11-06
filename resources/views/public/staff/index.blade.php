@@ -4,7 +4,7 @@
 @section('meta_description', 'Meet the coaches, staff and volunteers who make 1000 Hills Rugby possible.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('images/coaches.jpg') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('images/coaches.jpg') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Our people</li></ol>

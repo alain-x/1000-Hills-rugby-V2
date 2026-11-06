@@ -91,14 +91,24 @@ class ArticleController extends Controller
 
             $article->update($data);
 
+            $keptImages = [];
+            foreach ($request->input('sections', []) as $section) {
+                $existing = array_values(array_filter($section['existing_images'] ?? []));
+                $removed = array_values(array_filter($section['remove_images'] ?? []));
+                foreach (array_diff($existing, $removed) as $image) {
+                    $keptImages[] = $image;
+                }
+            }
+
             foreach ($article->sections as $section) {
                 foreach ($section->images ?? [] as $image) {
-                    if (! str_starts_with($image, 'http') && file_exists(public_path($image))) {
-                        @unlink(public_path($image));
+                    if (! in_array($image, $keptImages, true)) {
+                        delete_media($image);
                     }
                 }
-                $section->delete();
             }
+
+            $article->sections()->delete();
 
             $this->syncSections($request, $article);
 

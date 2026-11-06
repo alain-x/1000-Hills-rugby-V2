@@ -4,7 +4,7 @@
 @section('meta_description', 'Fixtures, kick-off times and results for all 1000 Hills Rugby teams across the season.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('uploads/1740072895_1hr_vs_Lions.jpeg') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_1hr_vs_Lions.jpeg') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Fixtures</li></ol>

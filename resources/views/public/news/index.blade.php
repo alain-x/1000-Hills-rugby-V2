@@ -4,7 +4,7 @@
 @section('meta_description', 'The latest news, match reports and club stories from 1000 Hills Rugby in Kigali, Rwanda.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ asset('images/rugby-2.jpg') }}');">
+    <section class="page-hero" style="background-image: url('{{ media_url('images/rugby-2.jpg') }}');">
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">News</li></ol>

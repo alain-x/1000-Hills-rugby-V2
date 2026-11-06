@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin sign in | 1000 Hills Rugby</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" href="{{ media_url('images/favicon-32x32.png') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">

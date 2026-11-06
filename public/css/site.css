@@ -231,12 +231,12 @@ aside > .card-clean { height: auto; }
 .match-card::after { content: ""; position: absolute; right: -45px; top: -45px; width: 150px; height: 150px; border-radius: 50%; border: 28px solid rgba(255, 255, 255, .06); }
 .match-card .match-label { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: var(--hr-gold); font-weight: 800; }
 .match-teams { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin: 1rem 0; }
-.match-team { text-align: center; flex: 1; }
+.match-team { text-align: center; flex: 1; min-width: 0; }
 .match-team img { width: 58px; height: 58px; border-radius: 50%; object-fit: contain; background: rgba(255, 255, 255, .1); padding: 8px; margin-bottom: .45rem; }
-.match-team .name { display: block; font-size: .8rem; font-weight: 700; line-height: 1.2; }
+.match-team .name { display: block; font-size: .8rem; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .match-score { font-family: Georgia, serif; font-size: 2rem; color: var(--hr-gold); font-weight: 700; line-height: 1; white-space: nowrap; }
 .match-vs { font-size: .7rem; color: rgba(255, 255, 255, .55); letter-spacing: .2em; }
-.match-meta { border-top: 1px solid rgba(255, 255, 255, .13); padding-top: .8rem; margin-top: .8rem; font-size: .78rem; color: rgba(255, 255, 255, .72); }
+.match-meta { border-top: 1px solid rgba(255, 255, 255, .13); padding-top: .8rem; margin-top: .8rem; font-size: .78rem; color: rgba(255, 255, 255, .72); flex-wrap: wrap; gap: .35rem .8rem; }
 
 /* Get involved */
 .involved-card {
@@ -381,8 +381,9 @@ aside > .card-clean { height: auto; }
 .table-card tbody td { padding: .85rem .8rem; border-color: var(--hr-line); font-size: .9rem; vertical-align: middle; }
 .table-card tbody tr:hover { background: #fbfcfa; }
 .table-card .rank { font-family: Georgia, serif; font-weight: 700; color: var(--hr-green-800); }
-.table-card .club-cell { display: flex; align-items: center; gap: .6rem; font-weight: 600; }
-.table-card .club-cell img { width: 28px; height: 28px; object-fit: contain; }
+.table-card .club-cell { display: flex; align-items: center; gap: .6rem; font-weight: 600; min-width: 0; }
+.table-card .club-cell span { min-width: 0; }
+.table-card .club-cell img { width: 28px; height: 28px; object-fit: contain; flex: 0 0 auto; }
 .table-card .points { font-weight: 800; color: var(--hr-green-800); }
 
 /* Schedule */
@@ -396,7 +397,7 @@ aside > .card-clean { height: auto; }
 
 /* Page hero */
 .page-hero { position: relative; background: var(--hr-green-950); color: #fff; padding: 104px 0 68px; overflow: hidden; background-size: cover; background-position: center; }
-.page-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(4, 37, 28, .93), rgba(4, 37, 28, .58)); }
+.page-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, rgba(4, 37, 28, .94) 0%, rgba(4, 37, 28, .82) 52%, rgba(4, 37, 28, .7) 100%); }
 .page-hero > .container { position: relative; z-index: 1; }
 .page-hero h1 { color: #fff; font-size: clamp(2.15rem, 4.5vw, 3.5rem); line-height: 1.06; margin-bottom: .75rem; }
 .page-hero p { color: rgba(255, 255, 255, .78); max-width: 680px; font-size: 1.02rem; margin-bottom: 0; }
@@ -452,6 +453,10 @@ aside > .card-clean { height: auto; }
 .page-link { border-radius: 9px !important; margin: 0 .15rem; }
 
 /* Utilities */
+.inset-0 { inset: 0; }
+.badge-soft { display: inline-flex; align-items: center; background: var(--hr-green-100); color: var(--hr-green-800); border-radius: 999px; padding: .28rem .7rem; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.week-slot .week-time { margin-left: auto; white-space: nowrap; }
+
 .text-gold { color: var(--hr-gold) !important; }
 .text-forest { color: var(--hr-green-800) !important; }
 .text-muted-2 { color: var(--hr-muted) !important; }
@@ -468,12 +473,15 @@ aside > .card-clean { height: auto; }
 @media (max-width: 991.98px) {
     .site-navbar .nav-link::after { display: none; }
     .site-navbar .nav-link { padding: .6rem 0 !important; }
+    .site-navbar .navbar-collapse { padding-bottom: .8rem; }
     .site-navbar .nav-donate { margin: .6rem 0 0; display: inline-block; }
     .hero { min-height: 540px; }
     .hero-scroll { display: none; }
     .quick-stats { margin-top: -30px; }
     .section { padding: 62px 0; }
-    .feature-story { min-height: 400px; }
+    .feature-story { min-height: 0; }
+    .page-hero { padding: 78px 0 52px; }
+    .page-hero::before { background: linear-gradient(180deg, rgba(4, 37, 28, .62) 0%, rgba(4, 37, 28, .9) 100%); }
 }
 
 @media (min-width: 576px) and (max-width: 991.98px) {
@@ -482,15 +490,34 @@ aside > .card-clean { height: auto; }
 }
 
 @media (max-width: 575.98px) {
-    .hero { min-height: 500px; }
-    .hero-content { padding: 80px 0 54px; }
+    .navbar-brand img { height: 42px; }
+    .navbar-brand .brand-name { font-size: 1rem; }
+    .hero { min-height: 0; }
+    .hero-content { padding: 64px 0 48px; }
+    .hero h1 { font-size: 2.15rem; }
+    .hero p { font-size: 1rem; }
     .hero-actions .btn { width: 100%; }
-    .schedule-row { grid-template-columns: 1fr; gap: .25rem; }
+    .stat-card { padding: 1rem .85rem; }
+    .stat-card .stat-value { font-size: 1.65rem; }
+    .stat-card .stat-label { letter-spacing: .06em; font-size: .64rem; }
+    .feature-story .feature-body { padding: 1.35rem; }
+    .feature-story h2 { font-size: 1.45rem; }
+    .schedule-row { grid-template-columns: 1fr auto; gap: .35rem 1rem; }
+    .schedule-row .time { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
     .fixture-row { flex-wrap: wrap; }
     .fixture-date { border-right: 0; padding-right: 0; }
+    .week-slot { align-items: flex-start !important; }
+    .week-slot .week-time { width: 100%; margin-left: 104px; white-space: normal; }
+    .match-team img { width: 46px; height: 46px; padding: 6px; }
+    .team-card { padding: 1.2rem .75rem; }
+    .team-crest { width: 72px; height: 72px; }
+    .team-crest img { width: 54px; height: 54px; }
+    .table-card thead th, .table-card tbody td { padding: .7rem .45rem; }
+    .table-card .hide-xs { display: none; }
     .section { padding: 52px 0; }
     .newsletter-box { padding: 1.7rem; }
     .involved-card { padding: 1.45rem 1.25rem 1.3rem; }
     .involved-card h3 { font-size: 1.3rem; }
     .involved-card .btn { width: 100%; }
+    .site-footer { padding: 52px 0 0; }
 }
