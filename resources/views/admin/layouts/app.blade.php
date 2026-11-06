@@ -35,8 +35,17 @@
             </a>
         </div>
         <nav class="nav flex-column py-2 flex-grow-1">
-            <a class="nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            @unless($admin?->isCoach())
+                <a class="nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            @endunless
 
+            @if($admin?->isCoach() || $admin?->isAdmin())
+                <p class="admin-sidebar-heading">Player development</p>
+                <a class="nav-link {{ request()->routeIs('admin.sessions.*', 'admin.attendance.*') ? 'active' : '' }}" href="{{ route('admin.sessions.index') }}"><i class="bi bi-clipboard-check"></i>Sessions</a>
+                <a class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}"><i class="bi bi-star"></i>Ratings &amp; reports</a>
+            @endif
+
+            @unless($admin?->isCoach())
             <p class="admin-sidebar-heading">Content</p>
             <a class="nav-link {{ request()->routeIs('admin.articles.*') ? 'active' : '' }}" href="{{ route('admin.articles.index') }}"><i class="bi bi-newspaper"></i>News articles</a>
             <a class="nav-link {{ request()->routeIs('admin.events.*') ? 'active' : '' }}" href="{{ route('admin.events.index') }}"><i class="bi bi-calendar-event"></i>Events</a>
@@ -69,6 +78,7 @@
                 <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" href="{{ route('admin.settings.edit') }}"><i class="bi bi-gear"></i>Site settings</a>
                 <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}" href="{{ route('admin.activity.index') }}"><i class="bi bi-clock-history"></i>Activity log</a>
             @endif
+            @endunless
         </nav>
         <div class="p-3 border-top" style="border-color:rgba(255,255,255,.08)!important;">
             <form action="{{ route('admin.logout') }}" method="POST">
@@ -135,7 +145,15 @@
     </div>
     <div class="offcanvas-body p-0">
         <nav class="nav flex-column py-2">
-            <a class="nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            @unless($admin?->isCoach())
+                <a class="nav-link {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+            @endunless
+            @if($admin?->isCoach() || $admin?->isAdmin())
+                <p class="admin-sidebar-heading">Player development</p>
+                <a class="nav-link {{ request()->routeIs('admin.sessions.*', 'admin.attendance.*') ? 'active' : '' }}" href="{{ route('admin.sessions.index') }}"><i class="bi bi-clipboard-check"></i>Sessions</a>
+                <a class="nav-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}"><i class="bi bi-star"></i>Ratings &amp; reports</a>
+            @endif
+            @unless($admin?->isCoach())
             <p class="admin-sidebar-heading">Content</p>
             <a class="nav-link {{ request()->routeIs('admin.articles.*') ? 'active' : '' }}" href="{{ route('admin.articles.index') }}"><i class="bi bi-newspaper"></i>News articles</a>
             <a class="nav-link {{ request()->routeIs('admin.events.*') ? 'active' : '' }}" href="{{ route('admin.events.index') }}"><i class="bi bi-calendar-event"></i>Events</a>
@@ -162,6 +180,7 @@
                 <a class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}" href="{{ route('admin.settings.edit') }}"><i class="bi bi-gear"></i>Site settings</a>
                 <a class="nav-link {{ request()->routeIs('admin.activity.*') ? 'active' : '' }}" href="{{ route('admin.activity.index') }}"><i class="bi bi-clock-history"></i>Activity log</a>
             @endif
+            @endunless
         </nav>
     </div>
 </div>

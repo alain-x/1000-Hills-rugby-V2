@@ -121,6 +121,18 @@
                             <label class="form-label" for="site_address">Address</label>
                             <input type="text" id="site_address" name="site_address" value="{{ old('site_address', setting('site_address')) }}" class="form-control">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="contact_image">Contact page image</label>
+                            @if(setting('contact_image'))
+                                <img src="{{ media_url(setting('contact_image')) }}" alt="" class="w-100 rounded mb-2" style="height:140px;object-fit:cover;">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="remove_contact_image" name="remove_contact_image" value="1">
+                                    <label class="form-check-label" for="remove_contact_image">Remove this image</label>
+                                </div>
+                            @endif
+                            <input type="file" id="contact_image" name="contact_image" class="form-control" accept="image/*">
+                            <div class="form-text">Shown across the top of the public contact page. Remove it to use a plain green banner.</div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label" for="map_embed">Map embed code</label>
                             <textarea id="map_embed" name="map_embed" rows="4" class="form-control" placeholder="Paste the Google Maps iframe embed code">{{ old('map_embed', setting('map_embed')) }}</textarea>

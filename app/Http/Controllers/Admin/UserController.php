@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\Activity;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class UserController extends Controller
                 ->orWhere('username', 'like', "%{$search}%"));
         }
 
-        $users = $query->orderBy('name')->paginate(20)->withQueryString();
+        $users = $query->with('team')->orderBy('name')->paginate(20)->withQueryString();
 
         return view('admin.users.index', compact('users'));
     }
@@ -29,8 +30,9 @@ class UserController extends Controller
     public function create()
     {
         $user = new User(['role' => 'editor', 'is_active' => true]);
+        $teams = Team::active()->get();
 
-        return view('admin.users.create', compact('user'));
+        return view('admin.users.create', compact('user', 'teams'));
     }
 
     public function store(Request $request)
@@ -39,11 +41,13 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'username' => ['nullable', 'string', 'max:60', 'alpha_dash', 'unique:users,username'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'role' => ['required', 'in:admin,editor'],
+            'role' => ['required', 'in:admin,editor,coach'],
+            'team_id' => ['nullable', 'exists:teams,id', Rule::requiredIf(fn () => $request->input('role') === 'coach')],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $data['is_active'] = $request->boolean('is_active');
+        $data['team_id'] = $data['role'] === 'coach' ? $data['team_id'] : null;
         $user = User::create($data);
         Activity::log('created', $user, 'Created admin user: '.$user->name);
 
@@ -52,7 +56,9 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $teams = Team::active()->get();
+
+        return view('admin.users.edit', compact('user', 'teams'));
     }
 
     public function update(Request $request, User $user)
@@ -61,7 +67,8 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'username' => ['nullable', 'string', 'max:60', 'alpha_dash', Rule::unique('users', 'username')->ignore($user->id)],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
-            'role' => ['required', 'in:admin,editor'],
+            'role' => ['required', 'in:admin,editor,coach'],
+            'team_id' => ['nullable', 'exists:teams,id', Rule::requiredIf(fn () => $request->input('role') === 'coach')],
             'password' => ['nullable', 'confirmed', Password::min(8)],
         ]);
 
@@ -70,6 +77,7 @@ class UserController extends Controller
         }
 
         $data['is_active'] = $request->boolean('is_active');
+        $data['team_id'] = $data['role'] === 'coach' ? $data['team_id'] : null;
 
         if ($user->isAdmin() && $data['role'] !== 'admin' && User::where('role', 'admin')->count() <= 1) {
             return back()->withInput()->withErrors(['role' => 'The last administrator cannot be demoted.']);

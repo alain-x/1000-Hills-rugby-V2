@@ -23,9 +23,20 @@
                         <label class="form-label" for="role">Role <span class="text-danger">*</span></label>
                         <select id="role" name="role" class="form-select" required>
                             <option value="editor" @selected(old('role', $user->role) === 'editor')>Editor — manage content</option>
+                            <option value="coach" @selected(old('role', $user->role) === 'coach')>Coach — attendance, ratings and reports</option>
                             <option value="admin" @selected(old('role', $user->role) === 'admin')>Administrator — full access</option>
                         </select>
-                        <div class="form-text">Administrators can manage users, settings and the activity log.</div>
+                        <div class="form-text">Only coaches can mark attendance, rate players and write reports.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="team_id">Coach squad</label>
+                        <select id="team_id" name="team_id" class="form-select">
+                            <option value="">Not a squad coach</option>
+                            @foreach($teams as $team)
+                                <option value="{{ $team->id }}" @selected((string) old('team_id', $user->team_id) === (string) $team->id)>{{ $team->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Required when the role is Coach. They only see players in this squad.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="password">Password {{ $isEdit ? '(leave blank to keep current)' : '*' }}</label>

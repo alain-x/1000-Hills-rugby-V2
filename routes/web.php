@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\ArticleController;
+use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\SquadSessionController;
+use App\Http\Controllers\Admin\PlayerReportController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\ClubController;
 use App\Http\Controllers\Admin\CompetitionController;
@@ -96,6 +99,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+
+        Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('sessions', [SquadSessionController::class, 'index'])->name('sessions.index');
+        Route::get('sessions/create', [SquadSessionController::class, 'create'])->middleware('superadmin')->name('sessions.create');
+        Route::post('sessions', [SquadSessionController::class, 'store'])->middleware('superadmin')->name('sessions.store');
+        Route::get('sessions/{squadSession}', [SquadSessionController::class, 'show'])->name('sessions.show');
+        Route::get('sessions/{squadSession}/edit', [SquadSessionController::class, 'edit'])->middleware('superadmin')->name('sessions.edit');
+        Route::put('sessions/{squadSession}', [SquadSessionController::class, 'update'])->middleware('superadmin')->name('sessions.update');
+        Route::delete('sessions/{squadSession}', [SquadSessionController::class, 'destroy'])->middleware('superadmin')->name('sessions.destroy');
+        Route::post('sessions/{squadSession}/attendance', [AttendanceController::class, 'store'])->middleware('coach')->name('sessions.attendance');
+        Route::get('reports', [PlayerReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/create', [PlayerReportController::class, 'create'])->middleware('coach')->name('reports.create');
+        Route::post('reports', [PlayerReportController::class, 'store'])->middleware('coach')->name('reports.store');
+        Route::get('reports/{report}', [PlayerReportController::class, 'show'])->name('reports.show');
+        Route::get('reports/{report}/edit', [PlayerReportController::class, 'edit'])->middleware('coach')->name('reports.edit');
+        Route::put('reports/{report}', [PlayerReportController::class, 'update'])->middleware('coach')->name('reports.update');
+        Route::delete('reports/{report}', [PlayerReportController::class, 'destroy'])->middleware('coach')->name('reports.destroy');
 
         Route::resource('articles', ArticleController::class)->except('show');
         Route::resource('events', AdminEventController::class)->except('show');

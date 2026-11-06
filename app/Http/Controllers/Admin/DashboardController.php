@@ -18,6 +18,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        if (auth()->user()?->isCoach()) {
+            return redirect()->route('admin.sessions.index');
+        }
+
         $stats = [
             'articles' => Article::count(),
             'events' => Event::count(),

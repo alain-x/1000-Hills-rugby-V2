@@ -34,6 +34,7 @@ class SettingSeeder extends Seeder
             ['about_short', 'At 1000 Hills Rugby, we provide top-tier coaching and skill development. Join the journey of excellence, where teamwork, discipline, and sportsmanship are at the core of everything we do. We are committed to shaping future leaders both on and off the field.', 'string', 'home'],
 
             // Contact
+            ['contact_image', 'images/contact-home-page.jpg', 'image', 'contact'],
             ['site_address', 'KK 591 St, Kigali, Rwanda', 'string', 'contact'],
             ['map_embed', null, 'string', 'contact'],
 

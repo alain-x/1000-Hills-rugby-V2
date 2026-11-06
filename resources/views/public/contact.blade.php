@@ -4,7 +4,7 @@
 @section('meta_description', 'Get in touch with 1000 Hills Rugby in Kigali, Rwanda. Enquire about joining, partnerships, media or volunteering.')
 
 @section('content')
-    <section class="page-hero" style="background-image: url('{{ media_url('images/contact-home-page.jpg') }}');">
+    <section class="page-hero" @if(setting('contact_image')) style="background-image: url('{{ media_url(setting('contact_image')) }}');" @endif>
         <div class="container">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li><li class="breadcrumb-item active">Contact</li></ol>

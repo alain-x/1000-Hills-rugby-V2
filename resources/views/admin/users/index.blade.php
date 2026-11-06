@@ -41,7 +41,7 @@
                             </div>
                         </td>
                         <td><code>{{ $user->username ?: '—' }}</code></td>
-                        <td><span class="badge-soft">{{ ucfirst($user->role) }}</span></td>
+                        <td><span class="badge-soft">{{ ucfirst($user->role) }}</span>@if($user->team)<div class="text-muted small">{{ $user->team->name }}</div>@endif</td>
                         <td>{!! $user->is_active ? '<span class="badge-soft">Active</span>' : '<span class="badge-muted">Disabled</span>' !!}</td>
                         <td class="text-muted small">{{ optional($user->last_login_at)->diffForHumans() ?: 'Never' }}</td>
                         <td class="text-end text-nowrap">

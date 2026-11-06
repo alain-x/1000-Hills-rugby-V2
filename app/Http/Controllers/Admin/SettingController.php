@@ -49,6 +49,7 @@ class SettingController extends Controller
             'site_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,avif,svg', 'max:4096'],
             'hero_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,avif', 'max:8192'],
             'og_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,avif', 'max:8192'],
+            'contact_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,avif', 'max:8192'],
         ]);
 
         $textKeys = [
@@ -66,11 +67,16 @@ class SettingController extends Controller
             }
         }
 
-        foreach (['site_logo', 'hero_image', 'og_image'] as $imageKey) {
+        foreach (['site_logo', 'hero_image', 'og_image', 'contact_image'] as $imageKey) {
             if ($request->hasFile($imageKey)) {
                 $path = upload_media($request->file($imageKey), 'settings', setting($imageKey));
-                Setting::put($imageKey, $path, 'image', 'branding');
+                Setting::put($imageKey, $path, 'image', $imageKey === 'contact_image' ? 'contact' : 'branding');
             }
+        }
+
+        if (! $request->hasFile('contact_image') && $request->boolean('remove_contact_image')) {
+            delete_media(setting('contact_image'));
+            Setting::put('contact_image', null, 'image', 'contact');
         }
 
         Setting::flush();
