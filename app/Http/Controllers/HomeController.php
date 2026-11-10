@@ -14,12 +14,12 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $featured = Article::published()->featured()->latest('published_at')->first()
-            ?? Article::published()->latest('published_at')->first();
+        // The newest published story always leads the homepage.
+        $featured = Article::published()->orderedByDate()->first();
 
         $articles = Article::published()
             ->when($featured, fn ($q) => $q->whereKeyNot($featured->id))
-            ->latest('published_at')
+            ->orderedByDate()
             ->take(3)
             ->get();
 

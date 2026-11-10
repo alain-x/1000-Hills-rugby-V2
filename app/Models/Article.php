@@ -46,6 +46,11 @@ class Article extends Model
         return $query->where('is_featured', true);
     }
 
+    public function scopeOrderedByDate(Builder $query): Builder
+    {
+        return $query->orderByRaw('COALESCE(published_at, created_at) DESC')->orderByDesc('id');
+    }
+
     public function getReadingTimeAttribute(): int
     {
         $text = strip_tags(($this->body ?? '').' '.$this->sections->pluck('content')->implode(' '));

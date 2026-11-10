@@ -121,10 +121,7 @@
                     <input class="form-check-input" type="checkbox" role="switch" id="is_published" name="is_published" value="1" @checked(old('is_published', $article->is_published ?? true))>
                     <label class="form-check-label" for="is_published">Published</label>
                 </div>
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" role="switch" id="is_featured" name="is_featured" value="1" @checked(old('is_featured', $article->is_featured))>
-                    <label class="form-check-label" for="is_featured">Feature on homepage</label>
-                </div>
+                <p class="text-muted small mb-3">The newest published article is automatically featured on the homepage.</p>
                 <hr>
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-admin-forest"><i class="bi bi-check2 me-1"></i>{{ $isEdit ? 'Save changes' : 'Create article' }}</button>

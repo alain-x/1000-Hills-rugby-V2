@@ -28,7 +28,7 @@ class ArticleController extends Controller
             $query->where('is_published', $request->get('status') === 'published');
         }
 
-        $articles = $query->latest()->paginate(12)->withQueryString();
+        $articles = $query->orderedByDate()->paginate(12)->withQueryString();
         $categories = Article::select('category')->distinct()->orderBy('category')->pluck('category');
 
         return view('admin.articles.index', compact('articles', 'categories'));
@@ -160,7 +160,6 @@ class ArticleController extends Controller
         ]);
 
         $validated['slug'] = $validated['slug'] ?? '';
-        $validated['is_featured'] = $request->boolean('is_featured');
         $validated['is_published'] = $request->boolean('is_published');
 
         return $validated;

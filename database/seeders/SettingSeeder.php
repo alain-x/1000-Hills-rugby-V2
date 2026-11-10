@@ -48,10 +48,17 @@ class SettingSeeder extends Seeder
 
             // Donations
             ['donation_intro', 'Your donation helps fund training, equipment, education support, and safe spaces for youth rugby.', 'string', 'donations'],
-            ['donation_bank_name', null, 'string', 'donations'],
-            ['donation_account_name', null, 'string', 'donations'],
+            ['donation_mobile_money_provider', null, 'string', 'donations'],
+            ['donation_mobile_money_name', '1000 Hills Rugby', 'string', 'donations'],
+            ['donation_mobile_money', '+250 788 261 386', 'string', 'donations'],
+            ['donation_bank_name', 'Bank of Kigali, Rwanda', 'string', 'donations'],
+            ['donation_account_name', 'Thousand Hills Rugby Football Club', 'string', 'donations'],
             ['donation_account_number', null, 'string', 'donations'],
-            ['donation_mobile_money', null, 'string', 'donations'],
+            ['donation_usd_account', '100011747258', 'string', 'donations'],
+            ['donation_rwf_account', '100011747177', 'string', 'donations'],
+            ['donation_bank_swift', 'BKIGRWRW', 'string', 'donations'],
+            ['donation_bank_branch', 'Bank of Kigali, Kimironko, Kigali, Rwanda', 'string', 'donations'],
+            ['donation_reference', 'Donation', 'string', 'donations'],
 
             // SEO & footer
             ['meta_title', '1000 Hills Rugby | Rugby for life in Kigali, Rwanda', 'string', 'seo'],

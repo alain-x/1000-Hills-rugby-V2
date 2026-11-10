@@ -76,7 +76,6 @@
                             @else
                                 <span class="badge-muted">Draft</span>
                             @endif
-                            @if($article->is_featured)<span class="badge-soft badge-warn ms-1">Featured</span>@endif
                         </td>
                         <td class="text-muted">{{ $article->sections_count }}</td>
                         <td class="text-muted small">{{ optional($article->published_at)->format('d M Y') ?: '—' }}</td>

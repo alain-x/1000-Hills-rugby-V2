@@ -156,7 +156,24 @@
                         <div class="col-12">
                             <label class="form-label" for="donation_intro">Donation introduction</label>
                             <textarea id="donation_intro" name="donation_intro" rows="3" class="form-control">{{ old('donation_intro', setting('donation_intro')) }}</textarea>
+                            <div class="form-text">Shown at the top of the public donation page.</div>
                         </div>
+
+                        <div class="col-12"><hr class="my-1"><h6 class="mb-0"><i class="bi bi-phone me-1"></i>Mobile Money</h6></div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="donation_mobile_money_provider">Provider</label>
+                            <input type="text" id="donation_mobile_money_provider" name="donation_mobile_money_provider" value="{{ old('donation_mobile_money_provider', setting('donation_mobile_money_provider')) }}" class="form-control" placeholder="e.g. MTN Mobile Money">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="donation_mobile_money_name">Account name</label>
+                            <input type="text" id="donation_mobile_money_name" name="donation_mobile_money_name" value="{{ old('donation_mobile_money_name', setting('donation_mobile_money_name')) }}" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="donation_mobile_money">Mobile money number</label>
+                            <input type="text" id="donation_mobile_money" name="donation_mobile_money" value="{{ old('donation_mobile_money', setting('donation_mobile_money')) }}" class="form-control" placeholder="+250 ...">
+                        </div>
+
+                        <div class="col-12"><hr class="my-1"><h6 class="mb-0"><i class="bi bi-bank2 me-1"></i>Bank account</h6></div>
                         <div class="col-md-6">
                             <label class="form-label" for="donation_bank_name">Bank name</label>
                             <input type="text" id="donation_bank_name" name="donation_bank_name" value="{{ old('donation_bank_name', setting('donation_bank_name')) }}" class="form-control">
@@ -166,12 +183,29 @@
                             <input type="text" id="donation_account_name" name="donation_account_name" value="{{ old('donation_account_name', setting('donation_account_name')) }}" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="donation_account_number">Account number</label>
-                            <input type="text" id="donation_account_number" name="donation_account_number" value="{{ old('donation_account_number', setting('donation_account_number')) }}" class="form-control">
+                            <label class="form-label" for="donation_usd_account">USD account number</label>
+                            <input type="text" id="donation_usd_account" name="donation_usd_account" value="{{ old('donation_usd_account', setting('donation_usd_account')) }}" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="donation_mobile_money">Mobile money details</label>
-                            <input type="text" id="donation_mobile_money" name="donation_mobile_money" value="{{ old('donation_mobile_money', setting('donation_mobile_money')) }}" class="form-control">
+                            <label class="form-label" for="donation_rwf_account">RWF account number</label>
+                            <input type="text" id="donation_rwf_account" name="donation_rwf_account" value="{{ old('donation_rwf_account', setting('donation_rwf_account')) }}" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="donation_bank_swift">SWIFT / BIC</label>
+                            <input type="text" id="donation_bank_swift" name="donation_bank_swift" value="{{ old('donation_bank_swift', setting('donation_bank_swift')) }}" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="donation_bank_branch">Branch / bank address</label>
+                            <input type="text" id="donation_bank_branch" name="donation_bank_branch" value="{{ old('donation_bank_branch', setting('donation_bank_branch')) }}" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="donation_account_number">Other account number <span class="text-muted">(optional)</span></label>
+                            <input type="text" id="donation_account_number" name="donation_account_number" value="{{ old('donation_account_number', setting('donation_account_number')) }}" class="form-control">
+                            <div class="form-text">Only shown when no USD or RWF account is set.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="donation_reference">Payment reference</label>
+                            <input type="text" id="donation_reference" name="donation_reference" value="{{ old('donation_reference', setting('donation_reference')) }}" class="form-control" placeholder="Donation">
                         </div>
                     </div>
                 </div>

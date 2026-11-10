@@ -169,3 +169,18 @@ body.admin-body {
     .admin-content { padding: 18px; }
     .admin-sidebar { min-height: auto; }
 }
+
+/* Pagination */
+.pagination-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .9rem 1.5rem; width: 100%; }
+.pagination-summary { color: var(--ad-muted); font-size: .82rem; }
+.pagination-clean { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: 0; }
+.pagination-clean .page-link { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-width: 40px; height: 40px; margin: 0; padding: 0 .8rem; border: 1px solid var(--ad-line); border-radius: 10px; background: #fff; color: var(--ad-forest); font-size: .84rem; font-weight: 700; transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.pagination-clean .page-link:hover { background: #eef6f1; border-color: #eef6f1; color: var(--ad-forest-900); }
+.pagination-clean .page-item.active .page-link { background: var(--ad-forest-900); border-color: var(--ad-forest-900); color: #fff; }
+.pagination-clean .page-item.disabled .page-link { color: #b9c4bf; background: #fff; border-color: var(--ad-line); }
+.pagination-clean .page-link i { font-size: .75rem; }
+@media (max-width: 575.98px) {
+    .pagination-wrap { justify-content: center; }
+    .pagination-summary { width: 100%; text-align: center; }
+    .pagination-clean { width: 100%; justify-content: center; }
+}

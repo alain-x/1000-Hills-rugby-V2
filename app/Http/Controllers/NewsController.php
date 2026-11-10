@@ -17,7 +17,7 @@ class NewsController extends Controller
                 $sub->where('title', 'like', "%{$search}%")
                     ->orWhere('excerpt', 'like', "%{$search}%");
             }))
-            ->latest('published_at')
+            ->orderedByDate()
             ->paginate(9)
             ->withQueryString();
 
@@ -33,10 +33,10 @@ class NewsController extends Controller
         $article->increment('views');
         $article->load('sections');
 
+        // Other stories, newest first.
         $related = Article::published()
             ->whereKeyNot($article->id)
-            ->where('category', $article->category)
-            ->latest('published_at')
+            ->orderedByDate()
             ->take(3)
             ->get();
 

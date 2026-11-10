@@ -1,7 +1,29 @@
 @extends('public.layout')
 
 @section('title', 'Donate | Support 1000 Hills Rugby')
-@section('meta_description', 'Your donation helps 1000 Hills Rugby provide kit, training, education support and safe spaces for young people in Kigali.')
+@section('meta_description', 'Support 1000 Hills Rugby by Mobile Money or bank transfer. Your gift provides kit, training, education support and safe spaces for young people in Kigali.')
+
+@php
+    $email = setting('site_email', 'info@1000hillsrugby.rw');
+    $phone = setting('site_phone', '+250 788 261 386');
+    $reference = setting('donation_reference', 'Donation');
+
+    $momoNumber = setting('donation_mobile_money');
+    $momoName = setting('donation_mobile_money_name');
+    $momoProvider = setting('donation_mobile_money_provider');
+
+    $bankName = setting('donation_bank_name');
+    $accountName = setting('donation_account_name');
+    $usdAccount = setting('donation_usd_account');
+    $rwfAccount = setting('donation_rwf_account');
+    $singleAccount = setting('donation_account_number');
+    $swift = setting('donation_bank_swift');
+    $branch = setting('donation_bank_branch');
+
+    $hasMomo = filled($momoNumber);
+    $hasBank = filled($usdAccount) || filled($rwfAccount) || filled($singleAccount);
+    $cardColumn = $hasMomo && $hasBank ? 'col-lg-6' : 'col-lg-8 mx-auto';
+@endphp
 
 @section('content')
     <section class="page-hero" style="background-image: url('{{ media_url('uploads/1740072895_fans.JPG') }}');">
@@ -16,105 +38,163 @@
 
     <section class="section">
         <div class="container">
-            <div class="row g-5">
-                <div class="col-lg-7">
-                    <div class="card-clean p-4 p-md-5">
-                        <span class="eyebrow">Make a donation</span>
-                        <h2 class="fs-3 mb-1">Choose an amount</h2>
-                        <p class="text-muted-2 small mb-4">All online card payments are processed securely. You will receive a confirmation with your reference.</p>
+            @if($hasMomo || $hasBank)
+                <div class="row g-4 align-items-stretch">
+                    @if($hasMomo)
+                        <div class="{{ $cardColumn }}">
+                            <div class="card-clean give-card give-card-momo h-100 p-4 p-md-5">
+                                <div class="give-icon"><i class="bi bi-phone"></i></div>
+                                <span class="eyebrow">Fastest way to give</span>
+                                <h2 class="fs-3 mt-2 mb-2">Mobile Money</h2>
+                                <p class="text-muted-2 small mb-0">Send your gift straight from your phone using the details below.</p>
 
-                        @if($errors->any())
-                            <div class="alert alert-danger">
-                                <div class="fw-semibold mb-1">Please check the form:</div>
-                                <ul class="mb-0 ps-3">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                                <div class="give-details mt-4">
+                                    @if(filled($momoProvider))
+                                        <div class="give-row">
+                                            <span class="label">Provider</span>
+                                            <span class="value">{{ $momoProvider }}</span>
+                                        </div>
+                                    @endif
+                                    @if(filled($momoName))
+                                        <div class="give-row">
+                                            <span class="label">Account name</span>
+                                            <span class="value">{{ $momoName }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="give-row">
+                                        <span class="label">Number</span>
+                                        <span class="value">
+                                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $momoNumber) }}">{{ $momoNumber }}</a>
+                                            <button type="button" class="copy-btn" data-copy="{{ $momoNumber }}" title="Copy number" aria-label="Copy mobile money number"><i class="bi bi-copy"></i></button>
+                                        </span>
+                                    </div>
+                                    @if(filled($reference))
+                                        <div class="give-row">
+                                            <span class="label">Reference</span>
+                                            <span class="value">{{ $reference }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="give-note mt-4">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    After sending, email <a href="mailto:{{ $email }}?subject=Mobile%20Money%20donation">{{ $email }}</a> with the transaction reference so we can thank you and issue a receipt.
+                                </div>
                             </div>
-                        @endif
-
-                        <div class="d-flex flex-wrap gap-2 mb-4">
-                            @foreach([5000, 10000, 25000, 50000, 100000] as $preset)
-                                <button type="button" class="btn btn-outline-forest btn-sm" data-amount="{{ $preset }}">{{ number_format($preset) }} RWF</button>
-                            @endforeach
                         </div>
+                    @endif
 
-                        <form action="{{ route('donate.store') }}" method="POST" class="form-admin">
-                            @csrf
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="donation-name" class="form-label">Full name <span class="text-danger">*</span></label>
-                                    <input type="text" id="donation-name" name="name" value="{{ old('name') }}" class="form-control" required>
+                    @if($hasBank)
+                        <div class="{{ $cardColumn }}">
+                            <div class="card-clean give-card give-card-bank h-100 p-4 p-md-5">
+                                <div class="give-icon"><i class="bi bi-bank2"></i></div>
+                                <span class="eyebrow">Direct transfer</span>
+                                <h2 class="fs-3 mt-2 mb-2">Bank account</h2>
+                                <p class="text-muted-2 small mb-0">Use your bank app or visit a branch to transfer your gift directly to the club.</p>
+
+                                <div class="give-details mt-4">
+                                    @if(filled($accountName))
+                                        <div class="give-row">
+                                            <span class="label">Account name</span>
+                                            <span class="value">{{ $accountName }}</span>
+                                        </div>
+                                    @endif
+                                    @if(filled($bankName))
+                                        <div class="give-row">
+                                            <span class="label">Bank</span>
+                                            <span class="value">{{ $bankName }}</span>
+                                        </div>
+                                    @endif
+                                    @if(filled($usdAccount))
+                                        <div class="give-row">
+                                            <span class="label">USD account</span>
+                                            <span class="value">
+                                                {{ $usdAccount }}
+                                                <button type="button" class="copy-btn" data-copy="{{ $usdAccount }}" title="Copy USD account number" aria-label="Copy USD account number"><i class="bi bi-copy"></i></button>
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if(filled($rwfAccount))
+                                        <div class="give-row">
+                                            <span class="label">RWF account</span>
+                                            <span class="value">
+                                                {{ $rwfAccount }}
+                                                <button type="button" class="copy-btn" data-copy="{{ $rwfAccount }}" title="Copy RWF account number" aria-label="Copy RWF account number"><i class="bi bi-copy"></i></button>
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if(filled($singleAccount) && ! filled($usdAccount) && ! filled($rwfAccount))
+                                        <div class="give-row">
+                                            <span class="label">Account number</span>
+                                            <span class="value">
+                                                {{ $singleAccount }}
+                                                <button type="button" class="copy-btn" data-copy="{{ $singleAccount }}" title="Copy account number" aria-label="Copy account number"><i class="bi bi-copy"></i></button>
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if(filled($swift))
+                                        <div class="give-row">
+                                            <span class="label">SWIFT / BIC</span>
+                                            <span class="value">{{ $swift }}</span>
+                                        </div>
+                                    @endif
+                                    @if(filled($branch))
+                                        <div class="give-row">
+                                            <span class="label">Branch</span>
+                                            <span class="value">{{ $branch }}</span>
+                                        </div>
+                                    @endif
+                                    @if(filled($reference))
+                                        <div class="give-row">
+                                            <span class="label">Reference</span>
+                                            <span class="value">{{ $reference }}</span>
+                                        </div>
+                                    @endif
                                 </div>
-                                <div class="col-md-6">
-                                    <label for="donation-email" class="form-label">Email address <span class="text-danger">*</span></label>
-                                    <input type="email" id="donation-email" name="email" value="{{ old('email') }}" class="form-control" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="donation-phone" class="form-label">Phone number</label>
-                                    <input type="text" id="donation-phone" name="phone" value="{{ old('phone') }}" class="form-control">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="donation-purpose" class="form-label">Direct my gift to</label>
-                                    <select id="donation-purpose" name="purpose" class="form-select">
-                                        @foreach(['General fund', 'Academy scholarships', 'Kit and equipment', 'Education support', 'Girls in rugby', 'Facilities'] as $purpose)
-                                            <option value="{{ $purpose }}" @selected(old('purpose') === $purpose)>{{ $purpose }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-7">
-                                    <label for="donation-amount" class="form-label">Amount <span class="text-danger">*</span></label>
-                                    <input type="number" id="donation-amount" name="amount" value="{{ old('amount') }}" min="100" step="1" class="form-control" placeholder="10000" required>
-                                </div>
-                                <div class="col-md-5">
-                                    <label for="donation-currency" class="form-label">Currency <span class="text-danger">*</span></label>
-                                    <select id="donation-currency" name="currency" class="form-select" required>
-                                        @foreach($currencies as $code => $label)
-                                            <option value="{{ $code }}" @selected(old('currency', 'RWF') === $code)>{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label for="donation-message" class="form-label">Message (optional)</label>
-                                    <textarea id="donation-message" name="message" rows="3" class="form-control" placeholder="Add a note of encouragement...">{{ old('message') }}</textarea>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-forest btn-lg w-100">Donate securely <i class="bi bi-arrow-right ms-1"></i></button>
-                                    <p class="text-muted-2 small text-center mt-2 mb-0"><i class="bi bi-lock-fill me-1"></i>Card and mobile money payments are handled by Pesapal.</p>
+
+                                <div class="give-note mt-4">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    After transferring, email <a href="mailto:{{ $email }}?subject=Bank%20transfer%20donation">{{ $email }}</a> with your proof of payment so we can thank you and issue a receipt.
                                 </div>
                             </div>
-                        </form>
+                        </div>
+                    @endif
+                </div>
+            @else
+                <div class="card-clean p-4 p-md-5 text-center">
+                    <div class="give-icon mx-auto"><i class="bi bi-heart"></i></div>
+                    <h2 class="fs-3 mb-2">Donation details are being updated</h2>
+                    <p class="text-muted-2 mb-4">Please contact the club directly and we will share the current Mobile Money and bank details with you.</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <a href="mailto:{{ $email }}" class="btn btn-forest"><i class="bi bi-envelope me-1"></i>{{ $email }}</a>
+                        <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="btn btn-outline-forest"><i class="bi bi-telephone me-1"></i>{{ $phone }}</a>
                     </div>
                 </div>
+            @endif
 
-                <aside class="col-lg-5">
-                    <div class="match-card mb-4">
+            <div class="row g-4 mt-4">
+                <div class="col-lg-8">
+                    <div class="match-card p-4 p-md-5">
                         <div class="match-label">Your impact</div>
-                        <h2 class="text-white fs-4 mt-2">What your gift makes possible</h2>
-                        <ul class="list-clean mt-3">
+                        <h2 class="text-white fs-3 mt-2 mb-3">What your gift makes possible</h2>
+                        <ul class="list-clean">
                             <li class="d-flex gap-2 py-2 text-white-50"><i class="bi bi-check-circle-fill text-gold mt-1"></i><span>A place in a safe, structured training session.</span></li>
                             <li class="d-flex gap-2 py-2 text-white-50"><i class="bi bi-check-circle-fill text-gold mt-1"></i><span>Boots, kit and protective equipment for a young player.</span></li>
                             <li class="d-flex gap-2 py-2 text-white-50"><i class="bi bi-check-circle-fill text-gold mt-1"></i><span>Transport and school support to keep players learning.</span></li>
                             <li class="d-flex gap-2 py-2 text-white-50"><i class="bi bi-check-circle-fill text-gold mt-1"></i><span>Coaching and safeguarding training for our volunteers.</span></li>
                         </ul>
                     </div>
-
-                    <div class="card-clean p-4">
-                        <h3 class="fs-5 mb-3"><i class="bi bi-bank2 text-gold me-2"></i>Other ways to give</h3>
-                        @if(setting('donation_bank_name') || setting('donation_account_number'))
-                            <div class="mb-3">
-                                <div class="text-muted-2 small text-uppercase" style="letter-spacing:.1em;">Bank transfer</div>
-                                @if(setting('donation_bank_name'))<div><strong>Bank:</strong> {{ setting('donation_bank_name') }}</div>@endif
-                                @if(setting('donation_account_name'))<div><strong>Account name:</strong> {{ setting('donation_account_name') }}</div>@endif
-                                @if(setting('donation_account_number'))<div><strong>Account number:</strong> {{ setting('donation_account_number') }}</div>@endif
-                            </div>
-                        @endif
-                        @if(setting('donation_mobile_money'))
-                            <div>
-                                <div class="text-muted-2 small text-uppercase" style="letter-spacing:.1em;">Mobile money</div>
-                                <div class="fw-semibold">{{ setting('donation_mobile_money') }}</div>
-                            </div>
-                        @endif
-                        <p class="text-muted-2 small mt-3 mb-0">Please email <a href="mailto:{{ setting('site_email', 'info@1000hillsrugby.rw') }}">{{ setting('site_email', 'info@1000hillsrugby.rw') }}</a> after a bank transfer so we can thank you and issue a receipt.</p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card-clean p-4 h-100">
+                        <h3 class="fs-5 mb-2"><i class="bi bi-chat-heart text-gold me-2"></i>Need a hand?</h3>
+                        <p class="text-muted-2 small">Questions about giving, corporate partnerships or in-kind support? We would love to hear from you.</p>
+                        <div class="d-grid gap-2">
+                            <a href="mailto:{{ $email }}" class="btn btn-outline-forest btn-sm"><i class="bi bi-envelope me-1"></i>{{ $email }}</a>
+                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phone) }}" class="btn btn-outline-forest btn-sm"><i class="bi bi-telephone me-1"></i>{{ $phone }}</a>
+                        </div>
                     </div>
-                </aside>
+                </div>
             </div>
         </div>
     </section>
@@ -122,13 +202,35 @@
 
 @push('scripts')
 <script>
-    document.querySelectorAll('[data-amount]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const input = document.getElementById('donation-amount');
-            if (input) {
-                input.value = btn.getAttribute('data-amount');
-                input.focus();
+    document.querySelectorAll('[data-copy]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var value = button.getAttribute('data-copy');
+            var icon = button.querySelector('i');
+            var originalIcon = icon ? icon.className : '';
+
+            function copied() {
+                if (icon) { icon.className = 'bi bi-check2'; }
+                button.classList.add('copied');
+                window.setTimeout(function () {
+                    if (icon) { icon.className = originalIcon; }
+                    button.classList.remove('copied');
+                }, 1800);
             }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(value).then(copied).catch(function () {});
+                return;
+            }
+
+            var input = document.createElement('textarea');
+            input.value = value;
+            input.setAttribute('readonly', 'readonly');
+            input.style.position = 'absolute';
+            input.style.left = '-9999px';
+            document.body.appendChild(input);
+            input.select();
+            try { document.execCommand('copy'); copied(); } catch (error) {}
+            document.body.removeChild(input);
         });
     });
 </script>

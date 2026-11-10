@@ -13,9 +13,7 @@ class DonationController extends Controller
 {
     public function create()
     {
-        $currencies = ['RWF' => 'RWF', 'USD' => 'USD', 'EUR' => 'EUR', 'GBP' => 'GBP'];
-
-        return view('public.donate', compact('currencies'));
+        return view('public.donate');
     }
 
     public function store(Request $request, Pesapal $pesapal)

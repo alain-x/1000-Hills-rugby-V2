@@ -78,6 +78,7 @@
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav ms-auto align-items-lg-center">
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('pages.show') && request()->route('page') === 'about' ? 'active' : '' }}" href="{{ route('pages.show', 'about') }}">About</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}">News</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('fixtures.*') ? 'active' : '' }}" href="{{ route('fixtures.index') }}">Fixtures</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('tables.*') ? 'active' : '' }}" href="{{ route('tables.index') }}">Tables</a></li>
@@ -93,9 +94,8 @@
                 </li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('events.*') ? 'active' : '' }}" href="{{ route('events.index') }}">Events</a></li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ request()->routeIs('pages.*', 'staff.*', 'sponsors.*', 'resources.*') ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Club</a>
+                    <a class="nav-link dropdown-toggle {{ ((request()->routeIs('pages.show') && request()->route('page') !== 'about') || request()->routeIs('staff.*', 'sponsors.*', 'resources.*')) ? 'active' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Club</a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ route('pages.show', 'about') }}">Our story</a></li>
                         <li><a class="dropdown-item" href="{{ route('pages.show', 'academy') }}">Academy</a></li>
                         <li><a class="dropdown-item" href="{{ route('pages.show', 'foundation') }}">Foundation</a></li>
                         <li><a class="dropdown-item" href="{{ route('pages.show', 'community') }}">Community</a></li>
