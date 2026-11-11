@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /donation/
-
-Sitemap: https://www.1000hillsrugby.rw/sitemap.xml
