@@ -67,8 +67,10 @@
                         <article class="feature-story" style="background-image: url('{{ media_url($featured->featured_image, 'uploads/NRC25/IMG_1906.JPG') }}');">
                             <div class="feature-body">
                                 <span class="badge-category mb-3">{{ $featured->category }}</span>
-                                <h2><a href="{{ route('news.show', $featured) }}" class="text-white">{{ $featured->title }}</a></h2>
-                                <p class="mt-2 mb-3">{{ $featured->excerpt_text }}</p>
+                                <div class="feature-headline-row">
+                                    <h2><a href="{{ route('news.show', $featured) }}" class="text-white">{{ $featured->title }}</a></h2>
+                                    <p>{{ $featured->excerpt_text }}</p>
+                                </div>
                                 <div class="meta text-white-50 mb-3">
                                     <span><i class="bi bi-calendar3 me-1"></i>{{ optional($featured->published_at ?? $featured->created_at)->format('d M Y') }}</span>
                                     <span><i class="bi bi-clock me-1"></i>{{ $featured->reading_time }} min read</span>
@@ -279,11 +281,14 @@
                     <a href="{{ route('sponsors.index') }}" class="btn btn-outline-forest">Become a partner</a>
                 </div>
             </div>
-            <div class="row g-3 align-items-center">
+            <div class="row g-4 align-items-stretch">
                 @forelse($sponsors as $sponsor)
-                    <div class="col-6 col-md-3 col-lg-2 reveal">
-                        <div class="card-clean d-flex align-items-center justify-content-center p-3" style="min-height:104px;">
-                            <img src="{{ media_url($sponsor->logo_path, 'images/LSFG+PartnerLogos-Colour-horizontal.jpg') }}" alt="{{ $sponsor->name ?: 'Partner' }}" style="max-height:58px; width:auto; object-fit:contain; filter:grayscale(20%);">
+                    <div class="col-6 col-md-4 reveal">
+                        <div class="card-clean partner-card">
+                            <img src="{{ media_url($sponsor->logo_path, 'images/LSFG+PartnerLogos-Colour-horizontal.jpg') }}" alt="{{ $sponsor->name ?: 'Partner' }}" loading="lazy">
+                            @if($sponsor->name)
+                                <span class="partner-name">{{ $sponsor->name }}</span>
+                            @endif
                         </div>
                     </div>
                 @empty
